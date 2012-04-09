@@ -184,7 +184,7 @@ static unsigned null_CAN_TRANSMIT(const char *devicename)
 	void *hAirpcap;
 	
 	
-	hAirpcap = LoadLibrary("airpcap.dll");
+	hAirpcap = LoadLibraryA("airpcap.dll");
 	if (hAirpcap == NULL)
 		return 0;
 
@@ -225,7 +225,7 @@ void pcaplive_init(struct PCAPLIVE *pl)
 	pl->is_printing_debug = 1;
 
 	/* Look for the Packet.dll */
-	hPacket = LoadLibrary("Packet.dll");
+	hPacket = LoadLibraryA("Packet.dll");
 	if (hPacket == NULL) {
 		if (pl->is_printing_debug)
 		switch (GetLastError()) {
@@ -239,7 +239,7 @@ void pcaplive_init(struct PCAPLIVE *pl)
 	}
 
 	/* Look for the Packet.dll */
-	hLibpcap = LoadLibrary("wpcap.dll");
+	hLibpcap = LoadLibraryA("wpcap.dll");
 	if (hLibpcap == NULL) {
 		if (pl->is_printing_debug)
 			fprintf(stderr, "%s: couldn't load %d\n", "wpcap.dll", (int)GetLastError());
@@ -247,7 +247,7 @@ void pcaplive_init(struct PCAPLIVE *pl)
 	}
 
 	/* Look for the Packet.dll */
-	hAirpcap = LoadLibrary("airpcap.dll");
+	hAirpcap = LoadLibraryA("airpcap.dll");
 	if (hLibpcap == NULL) {
 		if (pl->is_printing_debug)
 			fprintf(stderr, "%s: couldn't load %d\n", "airpcap.dll", (int)GetLastError());
