@@ -527,7 +527,7 @@ ferret_remember_beacon(
 	unsigned type, 
 	time_t now)
 {
-	unsigned __int64 hash = 0;
+	uint64_t hash = 0;
 	unsigned i;
 	static const size_t entry_count = sizeof(ferret->beacons)/sizeof(ferret->beacons[0]);
 	struct BeaconEntry *entry;
@@ -555,21 +555,21 @@ ferret_remember_beacon(
 	 */
 	hash = type;
 	for (i=0; i<6; i++) {
-		const unsigned __int64 z = macaddr[i];
+		const uint64_t z = macaddr[i];
 		hash ^= z<<(8*(i&0x7));
 	}
 	for (i=0; i<6; i++) {
-		const unsigned __int64 z = bssid[i];
+		const uint64_t z = bssid[i];
 		hash ^= z<<(8*((6+i)&0x7));
 	}
 	for (i=0; i<ssid_length; i++) {
-		const unsigned __int64 z = ssid[i];
+		const uint64_t z = ssid[i];
 		hash ^= z<<(8*((12+i)&0x7));
 	}
 
 
 	/* Look for existing entry */
-	index = (unsigned)(hash%(unsigned __int64)(sizeof(ferret->beacons)/sizeof(ferret->beacons[0])));
+	index = (unsigned)(hash%(uint64_t)(sizeof(ferret->beacons)/sizeof(ferret->beacons[0])));
 	
 	entry = &ferret->beacons[index];
 	

@@ -89,9 +89,10 @@ is_valid_action(unsigned action)
 	public static final byte VENDOR_ID_ME			= VENDOR_ID_AELITIS;
 
   */
-static unsigned __int64 get_long(const unsigned char *px, unsigned length, unsigned *r_offset)
+static uint64_t 
+get_long(const unsigned char *px, unsigned length, unsigned *r_offset)
 {
-	unsigned __int64 result = 0;
+	uint64_t result = 0;
 		
 	if (length >= 8 + (*r_offset))
 		length = 8 + (*r_offset);
@@ -180,7 +181,7 @@ unsigned smellslike_bittorrent_udp(const unsigned char *px, unsigned length)
 	 */
 	if (px[0] & 0x80) {
 		unsigned len;
-		unsigned __int64 connection_id;
+		uint64_t connection_id;
 		unsigned action_type;
 		unsigned transaction_id;
 		unsigned protocol_version;
@@ -194,7 +195,7 @@ unsigned smellslike_bittorrent_udp(const unsigned char *px, unsigned length)
 			unsigned port;
 		} originator_address;
 		unsigned originator_instance_id;
-		unsigned __int64 originator_time;
+		uint64_t originator_time;
 
 		/* Connection ID is 64-bits of random data, with the high-order bit set */
 		connection_id = get_long(px, length, &offset);
@@ -370,7 +371,7 @@ unsigned smellslike_bittorrent_udp(const unsigned char *px, unsigned length)
 	} else {
 		unsigned action_type;
 		unsigned transaction_id;
-		unsigned __int64 connection_id;
+		uint64_t connection_id;
 		unsigned protocol_version;
 		unsigned vendor_id;
 		unsigned target_instance_id;

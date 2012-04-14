@@ -26,7 +26,7 @@
 					|	*((unsigned char*)(px)+1)<< 8 \
 					|	*((unsigned char*)(px)+2)<<16 )
 
-#define ex64be(px)  ( (((unsigned __int64)ex32be(px))<<32L) + ((unsigned __int64)ex32be((px)+4)) )
-#define ex64le(px)  ( ((unsigned __int64)ex32be(px)) + (((unsigned __int64)ex32be((px)+4))<<32L) )
+#define ex64be(px)  ( (((uint64_t)ex32be(px))<<32L) + ((uint64_t)ex32be((px)+4)) )
+#define ex64le(px)  ( ((uint64_t)ex32be(px)) + (((uint64_t)ex32be((px)+4))<<32L) )
 
 #endif /*__FORMATS_H*/

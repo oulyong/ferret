@@ -23,6 +23,7 @@
 #include "stack-extract.h"
 #include "ferret.h"
 #include "util-manuf.h"
+#include "util-memcasecmp.h"
 #include <string.h>
 
 
@@ -68,7 +69,7 @@ rfc4536_check(struct Ferret *ferret, struct NetFrame *frame,
 			/*JOTDOWN(ferret,
 				JOT_SZ("rfc4536-oui", name),
 				0);*/
-			if (memicmp(name, "Apple", 5) != 0) {
+			if (memcasecmp(name, "Apple", 5) != 0) {
 				JOTDOWN(ferret,
 					JOT_SZ("rfc4536-oui", name),
 					JOT_MACADDR("ID-MAC", mac_src),
@@ -78,7 +79,7 @@ rfc4536_check(struct Ferret *ferret, struct NetFrame *frame,
 					0);
 			}
 		} else 
-			if (memicmp(name, "Apple", 5) != 0) {
+			if (memcasecmp(name, "Apple", 5) != 0) {
 				JOTDOWN(ferret,
 					JOT_HEXSTR("rfc4536-oui", mac_src, 3),
 					JOT_MACADDR("ID-MAC", mac_src),

@@ -45,7 +45,7 @@ enum {
 };
 
 struct BeaconEntry {
-	unsigned __int64 hash;
+	uint64_t hash;
 	unsigned char ssid[257];
 	unsigned ssid_length;
 	unsigned char bssid[6];

@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "platform.h"
 
 
 
@@ -264,8 +265,8 @@ manufs_add(unsigned oui, const char *shortname, const char *description)
     /* Create a new entry */
     i = ymanufs_count++;
     ymanufs[i].oui = oui;
-    _snprintf(ymanufs[i].str, sizeof(ymanufs[i].str), "%s", shortname);
-    ymanufs[i].desc = _strdup(description);
+    snprintf(ymanufs[i].str, sizeof(ymanufs[i].str), "%s", shortname);
+    ymanufs[i].desc = strdup(description);
 }
 
 unsigned from_hex(char c)

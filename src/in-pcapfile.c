@@ -26,15 +26,15 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include "in-pcapfile.h"
+#include "platform.h"
 
 #ifdef WIN32
-#define snprintf _snprintf
 
 #if 0
 /* This kludge allows us to seek beyond 2-gig files on
  * Windows */
-int __cdecl _fseeki64(FILE *fp, __int64 offset, int positoin);
-__int64 __cdecl _ftelli64(FILE *fp);
+int __cdecl _fseeki64(FILE *fp, int64_t offset, int positoin);
+int64_t __cdecl _ftelli64(FILE *fp);
 #define fseek _fseeki64
 #endif
 #endif
@@ -119,8 +119,8 @@ struct PcapFile
 	int linktype;
 	int frame_number;
 
-	unsigned __int64 file_size;
-	unsigned __int64 bytes_read;
+	uint64_t file_size;
+	uint64_t bytes_read;
 };
 
 #define CAPFILE_BIGENDIAN		1
@@ -221,7 +221,7 @@ smells_like_valid_packet(const unsigned char *px, unsigned length, unsigned byte
 }
 
 
-unsigned pcapfile_percentdone(struct PcapFile *capfile, unsigned __int64 *r_bytes_read)
+unsigned pcapfile_percentdone(struct PcapFile *capfile, uint64_t *r_bytes_read)
 {
 	if (r_bytes_read)
 		*r_bytes_read = capfile->bytes_read;
@@ -465,7 +465,7 @@ struct PcapFile *pcapfile_openread(const char *capfilename)
 	unsigned char buf[24];
 	unsigned byte_order;
 	unsigned linktype;
-	unsigned __int64 file_size = 0xFFFFffff;
+	uint64_t file_size = 0xFFFFffff;
 
 	if (capfilename == NULL)
 		return 0;

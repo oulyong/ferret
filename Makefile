@@ -3,7 +3,7 @@ SRCDIR = src
 DSTDIR = bin
 TMPDIR = tmp
 
-LIBS = 
+LIBS = -ldl -lSegFault
 INCLUDES = -I. -I$(SRCDIR) -I$(SRCDIR)/include
 
 CC = gcc

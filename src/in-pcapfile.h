@@ -6,7 +6,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+#include <stdint.h>
 
 struct PcapFile;
 
@@ -26,7 +26,7 @@ struct PcapFile *pcapfile_openread(const char *capfilename);
 struct PcapFile *pcapfile_openwrite(const char *capfilename, unsigned linktype);
 struct PcapFile *pcapfile_openappend(const char *capfilename, unsigned linktype);
 
-unsigned pcapfile_percentdone(struct PcapFile *handle, unsigned __int64 *r_bytes_read);
+unsigned pcapfile_percentdone(struct PcapFile *handle, uint64_t *r_bytes_read);
 
 
 /**

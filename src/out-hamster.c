@@ -237,8 +237,9 @@ void hamster_cookie(unsigned client_ip,
 	if (name_length == 7 && strnicmp(name, "expires", 7) == 0)
 		return;
 
-	if ((name_length == 6 && strnicmp(name, "xpires", 6) == 0) || (name_length == 3 && strnicmp(name, "ath", 3) == 0))
-		printf(".");
+	if ((name_length == 6 && strnicmp(name, "xpires", 6) == 0) || (name_length == 3 && strnicmp(name, "ath", 3) == 0)) {
+		printf("." "%s %u", __FILE__, __LINE__); exit(1);
+	}
 
 	if (fp == NULL) {
 		fp = fopen("hamster.txt", "wt+");

@@ -41,7 +41,7 @@ int debug=0;
 extern "C" void VALIDATE(int exp)
 {
 	if (!exp)
-		printf(".");
+		printf("(.X)");
 }
 
 void FRAMERR(struct NetFrame *frame, const char *msg, ...)
@@ -706,8 +706,8 @@ void main_set_wifi_defaults(struct Ferret *ferret, const char *channel)
 	 * Look for a channel based upon SSID
 	 */
 	if (channel) {
-		if (strlen(channel) == 1 && isdigit(channel[0])
-			|| strlen(channel) == 2 && isdigit(channel[0]) && isdigit(channel[1]))
+		if ((strlen(channel) == 1 && isdigit(channel[0]))
+			|| (strlen(channel) == 2 && isdigit(channel[0]) && isdigit(channel[1])))
 			ferret_set_parameter(ferret, "interface.channel", channel, 0);
 		else
 			ferret_set_parameter(ferret, "interface.search", channel, 0);
@@ -865,7 +865,7 @@ main_args(int argc, char **argv, struct Ferret *ferret)
 	}
 }
 
-static unsigned count_digits(unsigned __int64 n)
+static unsigned count_digits(uint64_t n)
 {
 	unsigned i=0;
 	for (i=0; n; i++)
@@ -910,6 +910,25 @@ print_stats(const char *str1, unsigned stat1, const char *str2, unsigned stat2)
 
 extern "C" void t_leak_check(void);
 
+/****************************************************************************
+ ****************************************************************************/
+#ifdef __GNUC__
+#include <execinfo.h>
+
+void handle_segfault(int sig) {
+  void *array[10];
+  size_t size;
+
+  // get void*'s for all entries on the stack
+  size = backtrace(array, 10);
+
+  // print out all the frames to stderr
+  fprintf(stderr, "Error: signal %d:\n", sig);
+  backtrace_symbols_fd(array, size, 2);
+  exit(1);
+}
+#endif
+
 /**
  * This is the main entry point to the program
  */
@@ -924,6 +943,11 @@ int FERRET_MAIN(int argc, char **argv)
 	int i;
 	char errbuf[PCAP_ERRBUF_SIZE];
 	struct Ferret *ferret;
+
+	/* Print backtraces when we crash */
+#ifdef __GNUC__
+	  //signal(SIGSEGV, handle_segfault);
+#endif
 
 	fprintf(stderr, "-- FERRET 1.2.0 - 2008 (c) Errata Security\n");
 	fprintf(stderr, "-- build = %s %s (%lu-bits)\n", __DATE__, __TIME__, sizeof(size_t)*8);
@@ -987,29 +1011,29 @@ int FERRET_MAIN(int argc, char **argv)
 	/* 
 	 * Retrieve the device list (if libpcap is available)
 	 */
-	if (pcap.is_available && ferret->is_live)
-	if (pcap.findalldevs(&alldevs, errbuf) != -1)
-	{
-		pcap_if_t *d;
-		i=0;
-
-		if (alldevs == NULL) {
-			fprintf(stderr, "ERR:libpcap: no adapters found, are you sure you are root?\n");
-		}
-		/* Print the list */
-		for(d=alldevs; d; d=d->next)
+	if (pcap.is_available && ferret->is_live) {
+		if (pcap.findalldevs(&alldevs, errbuf) != -1)
 		{
-			fprintf(stderr, " %d  %s \t", ++i, d->name);
-			if (d->description)
-				fprintf(stderr, "(%s)\n", d->description);
-			else
-				fprintf(stderr, "(No description available)\n");
-		}
-		fprintf(stderr,"\n");
-	} else {
-		fprintf(stderr, "%s\n", errbuf);
-	}
+			pcap_if_t *d;
+			i=0;
 
+			if (alldevs == NULL) {
+				fprintf(stderr, "ERR:libpcap: no adapters found, are you sure you are root?\n");
+			}
+			/* Print the list */
+			for(d=alldevs; d; d=d->next)
+			{
+				fprintf(stderr, " %d  %s \t", ++i, d->name);
+				if (d->description)
+					fprintf(stderr, "(%s)\n", d->description);
+				else
+					fprintf(stderr, "(No description available)\n");
+			}
+			fprintf(stderr,"\n");
+		} else {
+			fprintf(stderr, "%s\n", errbuf);
+		}
+	}
 
 	/* 
 	 * If the user doesn't specify any options, then print a helpful

@@ -7,6 +7,7 @@
 #include "ferret.h"
 #include "stack-tcp.h"
 #include "util-mystring.h"
+#include "util-memcasecmp.h"
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -195,7 +196,7 @@ static void msg_content_type(struct StringReassembler *data, const unsigned char
 				return;
 			if (i+1<length && px[i] == '\r' && px[i+1] == '\n')
 				return;
-			if (i+content_type_len<length && memicmp(px+i, "Content-Type:", content_type_len) == 0) {
+			if (i+content_type_len<length && memcasecmp(px+i, "Content-Type:", content_type_len) == 0) {
 				unsigned offset;
 				i += content_type_len;
 				while (i < length && px[i] != '\n' && isspace(px[i]))
@@ -248,13 +249,13 @@ void msg_msnmsgrp2p(struct TCPRECORD *sess, struct NetFrame *frame, struct Strin
 	struct MSNP2PInfo {
 		unsigned channel_session_id;
 		unsigned id;
-		unsigned __int64 offset;
-		unsigned __int64 total_data_size;
+		uint64_t offset;
+		uint64_t total_data_size;
 		unsigned message_size;
 		unsigned flags;
 		unsigned ack_id;
 		unsigned ack_uid;
-		unsigned __int64 ack_size;
+		uint64_t ack_size;
 	} p2pinfo;
 
 	UNUSEDPARM(sess);

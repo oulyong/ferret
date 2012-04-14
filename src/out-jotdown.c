@@ -58,7 +58,7 @@
  * A stupid way to calculate the number of digits in an Integer
  * because I'm too lazy to think of a more elegant way.
  */
-static unsigned count_digits(unsigned __int64 n)
+static unsigned count_digits(uint64_t n)
 {
 	unsigned i=0;
 	for (i=0; n; i++)
@@ -71,7 +71,7 @@ static unsigned count_digits(unsigned __int64 n)
  * This function formats an unsigned number, possibly 64-bits in length.
  */
 static void 
-format_unsigned(char *buf, unsigned length, size_t *r_offset, unsigned __int64 num)
+format_unsigned(char *buf, unsigned length, size_t *r_offset, uint64_t num)
 {
 	unsigned digits = count_digits(num);
 	size_t new_offset;
@@ -438,7 +438,7 @@ is_user_id(const char *name)
 	unsigned i;
 
 	for (i=0; user_ids[i]; i++) {
-		if (_stricmp(name, user_ids[i]) == 0)
+		if (stricmp(name, user_ids[i]) == 0)
 			return 1;
 	}
 	return 0;
@@ -460,7 +460,7 @@ void hamster_sift(unsigned record_count, struct BinChild **bc_vector)
 		char *value = bc_vector[i*2+1]->m_data;
 		unsigned value_length = bc_vector[i*2+1]->m_data_length;
 
-		if (_stricmp(name, "ID-IP") == 0) {
+		if (stricmp(name, "ID-IP") == 0) {
 			id_ip = value;
 			id_ip_length = value_length;
 			continue;
@@ -501,13 +501,13 @@ void vJOTDOWN(struct Ferret *ferret, va_list marker)
 	for (record_count=0; record_count<MAX_RECORDS; record_count++) {
 		const char *name;
 		const unsigned char *value;
-		enum RECORD_FORMAT fmt;
+		int fmt;
 		unsigned length;
 		char valbuf[1024];
 		size_t vallen=0;
 		
 		name = va_arg(marker, char *);
-		if (name == 0)
+		if (name == 0 /*kludge*/ || ((unsigned)(size_t)name) == 0)
 			break;
 
 		fmt = va_arg(marker, int);
@@ -609,7 +609,7 @@ void vJOTDOWN(struct Ferret *ferret, va_list marker)
 
 				vallen = 0;
 				while (vallen < sizeof(valbuf)-2 && i<length) {
-					unsigned __int64 id=0;
+					uint64_t id=0;
 
 					/* Grab the next id */
 					while (i<length && value[i]&0x80) {
@@ -707,8 +707,12 @@ void vJOTDOWN(struct Ferret *ferret, va_list marker)
 			}
 			break;
 		default:
-			fprintf(stderr, "unknown record type\n");
-			break;;
+			fprintf(stderr, "unknown record type=%u, count=%u type=0x%llx\n", fmt, record_count,
+				(long long unsigned)fmt
+				/*name, fmt, value, length*/);
+			printf("name = [0x%llx]\n", (long long unsigned)name);
+			printf("name = %s\n", name);
+			break;
 		}
 		
 

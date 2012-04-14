@@ -26,19 +26,19 @@ enum RECORD_FORMAT {
 	REC_URLENCODE
 };
 
-#define JOT_NUM(name,val) name,REC_UNSIGNED,&val,sizeof(val)
+#define JOT_NUM(name,val) name,REC_UNSIGNED,&val,(unsigned)sizeof(val)
 #define JOT_SZ(name,val) name,REC_SZ,val,-1
 #define JOT_SRC(name,val) name,REC_FRAMESRC,val,-1
 #define JOT_DST(name,val) name,REC_FRAMEDST,val,-1
-#define JOT_PRINT(name,val,val_len) name,REC_PRINTABLE,val,val_len
+#define JOT_PRINT(name,val,val_len) name,REC_PRINTABLE,val,(unsigned)(val_len)
 #define JOT_PRINTT(name,val) name,REC_STRING_T,val,-1
-#define JOT_HEXSTR(name,val,val_len) name,REC_HEXSTRING,val,val_len
-#define JOT_OID(name,val,val_len) name,REC_OID,val,val_len
-#define JOT_IPv4(name,val) name,REC_IPv4,&val,sizeof(val)
-#define JOT_IPv6(name,val,val_len) name,REC_IPv6,val,val_len
+#define JOT_HEXSTR(name,val,val_len) name,REC_HEXSTRING,val,(unsigned)(val_len)
+#define JOT_OID(name,val,val_len) name,REC_OID,val,(unsigned)(val_len)
+#define JOT_IPv4(name,val) name,REC_IPv4,&val,((unsigned)(sizeof(val)))
+#define JOT_IPv6(name,val,val_len) name,REC_IPv6,val,(unsigned)(val_len)
 #define JOT_MACADDR(name,val) name,REC_MACADDR,val,6
-#define JOT_HEX24(name,val) name,REC_HEX24,&val,sizeof(val)
-#define JOT_URLENC(name,val,val_len) name,REC_URLENCODE,val,val_len
+#define JOT_HEX24(name,val) name,REC_HEX24,&val,(unsigned)sizeof(val)
+#define JOT_URLENC(name,val,val_len) name,REC_URLENCODE,val,(unsigned)(val_len)
 
 
 //#define SAMPLE process_sample (proto,name,type,data,sizes) process_sample(ferret, name, valname,type,data,sizes)

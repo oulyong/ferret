@@ -41,6 +41,7 @@
 #include "stack-netframe.h"
 #include "ferret.h"
 #include "stack-extract.h"
+#include "util-memcasecmp.h"
 #include <string.h>
 #include <ctype.h>
 #include <stdarg.h>
@@ -172,7 +173,7 @@ dns_resolve_alias(struct NetFrame *frame, const unsigned char *px, unsigned leng
 		if ((rec->type != 1 && rec->type != 5)|| (rec->clss&0x7FFF) != 1)
 			continue;
 
-		if (stricmp(alias, name) == 0) {
+		if (strcasecmp(alias, name) == 0) {
 			switch (rec->type) {
 			case 1:
 				return ex32be(px+rec->rdata_offset);
@@ -610,7 +611,7 @@ dns_parse_resource_record(struct Ferret *ferret, struct NetFrame *frame,
 			return;
 		}
 
-		if (stricmp(name, "current.cvd.clamav.net") == 0) {
+		if (strcasecmp(name, "current.cvd.clamav.net") == 0) {
 			/* This is a single string containing a version string, like:
 			 * 0.91.1:44:3855:1186270141:1
 			 */

@@ -74,8 +74,9 @@ add_ids(struct ACpattern *p, const unsigned *ids, unsigned id_count)
 {
 	unsigned *new_ids;
 	
-	if (ids[0] == 0)
-		printf(".");
+	if (ids[0] == 0) {
+		printf("." "%s %u", __FILE__, __LINE__);
+	}
 	
 	new_ids = (unsigned*)malloc((p->id_count+id_count)*sizeof(new_ids[0]));
 

@@ -96,9 +96,13 @@ void parse_x224_pdu(struct TCPRECORD *sess, struct NetFrame *frame, const unsign
 			state = X224_CONNECT_DST_REF1;
 			break;
 		case 0x0f:
+			state = X224_DONE;
+			offset = length;
 			break;
 		default:
-			printf(".");
+			state = X224_DONE;
+			offset = length;
+			//printf("." "%s %u", __FILE__, __LINE__); exit(1);
 		}
 		CHECK2(offset,length,state,X224_CONNECT_DST_REF1);
 

@@ -118,15 +118,16 @@ value_SET_COOKIE(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned 
 				}
 			}
 		}
-		if (domain == NULL || domain_length == 0)
-			printf(".");
+		if (domain == NULL || domain_length == 0) {
+			; //printf("." "%s %u", __FILE__, __LINE__); exit(1);
+		}
 
 		/*
 		 * Get the name/value pairs
 		 */
 		i = 0;
 		while (i<buf_length) {
-			while (i<buf_length && isspace(buf[i]))
+			while (i<buf_length && isspace(buf[i]&0xFF))
 				i++;
 
 			name = buf+i;
@@ -135,11 +136,11 @@ value_SET_COOKIE(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned 
 			for (name_length=0; i+name_length<buf_length && name[name_length]!='=' && name[name_length]!=';'; name_length++)
 				;
 			i += name_length;
-			while (name_length && isspace(name[name_length-1]))
+			while (name_length && isspace(name[name_length-1]&0xFF))
 				name_length--;
 			if (i<buf_length && buf[i]=='=')
 				i++;
-			while (i<buf_length && isspace(buf[i]))
+			while (i<buf_length && isspace(buf[i]&0xFF))
 				i++;
 
 			/* Get the value */
