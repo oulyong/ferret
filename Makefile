@@ -23,7 +23,7 @@ SRC = $(main_sources)
 OBJ = $(addprefix $(TMPDIR)/, $(notdir $(addsuffix .o, $(basename $(SRC))))) $(TMPDIR)/main.o
 
 $(DSTDIR)/ferret: $(OBJ)
-	$(CC) $(CFLAGS) -o $@ $(OBJ) -lm $(LIBS) -lstdc++
+	$(CC) $(CFLAGS) -o $@ $(OBJ) -lm $(LIBS) -lstdc++ -rdynamic
 
 depend:
 	makedepend $(CFLAGS) -Y $(SRC)
