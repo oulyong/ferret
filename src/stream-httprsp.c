@@ -155,17 +155,19 @@ value_SET_COOKIE(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned 
 			if ((name_length == 4 && strnicmp(name,"path",4)==0) || (name_length==6 && strnicmp(name,"domain",6)==0))
 				continue;
 
-			hamster_cookie(*(unsigned*)sess->ip_dst, 
-					domain, domain_length,
-					path, path_length,
-					name, name_length,
-					value, value_length);
-			hamster_set_cookie(*(unsigned*)sess->ip_dst, 
-					domain, domain_length,
-					path, path_length,
-					name, name_length,
-					value, value_length);
+			if (!sess->eng->ferret->cfg.no_hamster) {
 
+				hamster_cookie(*(unsigned*)sess->ip_dst, 
+						domain, domain_length,
+						path, path_length,
+						name, name_length,
+						value, value_length);
+				hamster_set_cookie(*(unsigned*)sess->ip_dst, 
+						domain, domain_length,
+						path, path_length,
+						name, name_length,
+						value, value_length);
+			}
 		}
 	}
 

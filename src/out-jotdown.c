@@ -507,7 +507,7 @@ void vJOTDOWN(struct Ferret *ferret, va_list marker)
 		size_t vallen=0;
 		
 		name = va_arg(marker, char *);
-		if (name == 0 /*kludge*/ || ((unsigned)(size_t)name) == 0)
+		if (name == 0 /*kludge*/ /*|| ((unsigned)(size_t)name) == 0*/)
 			break;
 
 		fmt = va_arg(marker, int);
@@ -741,7 +741,9 @@ void vJOTDOWN(struct Ferret *ferret, va_list marker)
 			}
 			printf("\n");
 		}
-		hamster_sift(record_count, bc_vector);
+
+		if (!ferret->cfg.no_hamster)
+			hamster_sift(record_count, bc_vector);
 	}
 
 }

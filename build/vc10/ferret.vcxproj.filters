@@ -240,6 +240,9 @@
     <ClCompile Include="..\..\src\out-jotdown.c">
       <Filter>Source Files\i/o</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\pixie.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ferret.h">
@@ -316,6 +319,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\dgram-dns.h">
       <Filter>Source Files\dgram app</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\pixie.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

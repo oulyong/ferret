@@ -146,6 +146,7 @@ value_REFERER(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned cha
 	struct HTTPREQUEST *req = (struct HTTPREQUEST *)vreq;
 	value_DEFAULT(sess, frame, px, length, req);
 	if (req->value_state && req->host) {
+		if (!sess->eng->ferret->cfg.no_hamster)
 		hamster_url(*(unsigned*)sess->ip_src,
 					req->host->str, req->host->length,	/*host*/
 					req->url, req->url_length,			/*url*/
@@ -174,6 +175,7 @@ value_HOST(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *
 				JOT_PRINT("URL", req->url, req->url_length),
 				0);
 
+		if (!sess->eng->ferret->cfg.no_hamster)
 		hamster_url(*(unsigned*)sess->ip_src,
 					req->host->str, req->host->length,	/*host*/
 					req->url, req->url_length,			/*url*/
@@ -326,7 +328,7 @@ void handle_http_request(struct TCPRECORD *sess, struct NetFrame *frame, struct 
 
 			parse_http_cookie(sess, frame, p_name, p_name_length, p_value, p_value_length);
 
-			if (req->host)
+			if (req->host && !sess->eng->ferret->cfg.no_hamster)
 			hamster_cookie(	*(unsigned*)sess->ip_src,				/*cookie instance ID*/
 							req->host->str, req->host->length,	/*cookie domain */
 							req->url, req->url_length,				/*cookie path */

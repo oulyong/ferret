@@ -77,6 +77,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)../../bin/$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)../../tmp/$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -137,6 +139,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>setargv.obj;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -173,6 +176,7 @@
     <ClCompile Include="..\..\src\malloctrac.c" />
     <ClCompile Include="..\..\src\out-hamster.c" />
     <ClCompile Include="..\..\src\out-jotdown.c" />
+    <ClCompile Include="..\..\src\pixie.c" />
     <ClCompile Include="..\..\src\stack-arp.c" />
     <ClCompile Include="..\..\src\stack-atalkddp.c" />
     <ClCompile Include="..\..\src\stack-ethernet.c" />
@@ -217,6 +221,7 @@
     <ClInclude Include="..\..\src\in-pcapfile.h" />
     <ClInclude Include="..\..\src\in-pcaplive.h" />
     <ClInclude Include="..\..\src\out-jotdown.h" />
+    <ClInclude Include="..\..\src\pixie.h" />
     <ClInclude Include="..\..\src\platform.h" />
     <ClInclude Include="..\..\src\stack-asn1.h" />
     <ClInclude Include="..\..\src\stack-extract.h" />

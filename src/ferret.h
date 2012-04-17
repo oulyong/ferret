@@ -250,8 +250,10 @@ struct Ferret
 		unsigned interface_checkfcs:1;
 		unsigned interface_scan:1;
 		unsigned no_vectors:1;
+		unsigned no_hamster:1;
 		unsigned statistics_print:1;
 		unsigned quiet:1; /* global quiet flag that turns off reporting with -q on the command line */
+		unsigned is_speed_timer:1; 
 		char *echo;
 	} cfg;
 

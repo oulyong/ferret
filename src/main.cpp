@@ -25,6 +25,7 @@
 #include "in-pcapfile.h"
 #include "util-mystring.h"
 
+#include "pixie.h"
 
 /**
  * This structure is initialized with 'pcap_init()' at the beginning
@@ -530,8 +531,27 @@ void process_live(struct Ferret *ferret, const char *devicename)
     pcap.close(hPcap);
 }
 
+uint64_t total_bytes_read = 0;
 
+void speed_timer(void *)
+{
+	uint64_t last_bytes_read = 0;
 
+	for (;;) {
+		uint64_t bits_per_second;
+
+		pixie_sleep(1000);
+
+		if (total_bytes_read == last_bytes_read)
+			continue;
+
+		bits_per_second = (total_bytes_read - last_bytes_read)*8;
+		last_bytes_read = total_bytes_read;
+
+		fprintf(stderr, "rate = %u-mbps\n", (unsigned)(bits_per_second/1000000));
+
+	}
+}
 
 /**
  * Process a file containing packet capture data.
@@ -539,7 +559,7 @@ void process_live(struct Ferret *ferret, const char *devicename)
 int process_file(struct Ferret *ferret, const char *capfilename)
 {
 	struct PcapFile *capfile;
-	unsigned char buf[2048];
+	unsigned char buf[65536];
 	unsigned linktype;
 	unsigned frame_number = 0;
 
@@ -574,6 +594,8 @@ int process_file(struct Ferret *ferret, const char *capfilename)
 			);
 		if (x == 0)
 			break;
+
+		total_bytes_read += frame->captured_length;
 
 		/* Clear the flag. This will be set if the processing finds something
 		 * interesting. At that point, we might want to save a copy of the 
@@ -957,7 +979,7 @@ int FERRET_MAIN(int argc, char **argv)
 	 * files to be closed gracefully when exiting. Otherwise, the
 	 * last bit of data gets corrupted when the user hits <ctrl-c>
 	 */
-	signal(SIGINT, control_c_handler);
+	//signal(SIGINT, control_c_handler);
 
 	/*
 	 * Runtime-load the libpcap shared-object or the winpcap DLL. We
@@ -1034,6 +1056,9 @@ int FERRET_MAIN(int argc, char **argv)
 			fprintf(stderr, "%s\n", errbuf);
 		}
 	}
+
+	if (ferret->cfg.is_speed_timer)
+		pixie_begin_thread(speed_timer, 0, 0);
 
 	/* 
 	 * If the user doesn't specify any options, then print a helpful

@@ -141,6 +141,7 @@ config_echo(struct Ferret *ferret, FILE *fp)
 	LOG_SZ("snarfer.directory", ferret->snarfer.directory);
 	log_choice(fp, "snarfer.mode", ferret->snarfer.mode, "none\0all\0most\0\0");
 	log_choice(fp, "vector.mode", ferret->cfg.no_vectors, "sift\0none\0\0");
+	log_choice(fp, "hamster.mode", ferret->cfg.no_hamster, "sift\0none\0\0");
 	LOG_BOOL("statistics.print", ferret->cfg.statistics_print);
 	LOG_BOOL("config.quiet", ferret->cfg.quiet);
 
@@ -242,10 +243,17 @@ ferret_set_parameter(struct Ferret *ferret, const char *name, const char *value,
 				ferret->interface_channel = strtoul(value,0,0);
 			}
 		}
+	} else if (MATCH("speed.timer")) {
+		ferret->cfg.is_speed_timer = 1;
 	} else if (MATCH("vector")) {
 		if (MATCH("mode")) {
 			if (strcmp(value, "none")==0)
 				ferret->cfg.no_vectors = 1;
+		}
+	} else if (MATCH("hamster")) {
+		if (MATCH("mode")) {
+			if (strcmp(value, "none")==0)
+				ferret->cfg.no_hamster = 1;
 		}
 	} else if (MATCH("filter")) {
 		if (MATCH("mac")) {

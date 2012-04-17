@@ -287,7 +287,7 @@ int pcapfile_readframe(
 		is_corrupt = 1;
 	if (*r_original_length < 8)
 		is_corrupt = 1;
-	if (*r_original_length > 10000)
+	if (*r_original_length > 160000)
 		is_corrupt = 1;
 
 	/*
