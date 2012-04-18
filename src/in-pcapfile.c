@@ -121,6 +121,12 @@ struct PcapFile
 
 	uint64_t file_size;
 	uint64_t bytes_read;
+
+	/**
+	 * This is for asynchronous reading of the file.
+	 */
+	unsigned char *aio_buffer;
+	size_t aio_buffer_size;
 };
 
 #define CAPFILE_BIGENDIAN		1
@@ -234,7 +240,7 @@ unsigned pcapfile_percentdone(struct PcapFile *capfile, uint64_t *r_bytes_read)
 /**
  * Read the next packet from the file stream.
  */
-int pcapfile_readframe(
+int pcapfile_readframe2(
 	struct PcapFile *capfile,
 	unsigned *r_time_secs,
 	unsigned *r_time_usecs,
@@ -249,6 +255,7 @@ int pcapfile_readframe(
 	unsigned byte_order = capfile->byte_order;
 	unsigned is_corrupt = 0;
 
+	again:
 	/* Read in the 16-byte frame header. */
 	bytes_read = fread(header, 1, 16, capfile->fp);
 	if (bytes_read < 16) {
@@ -281,6 +288,12 @@ int pcapfile_readframe(
 		} else
 			is_corrupt = 1; /* shouldn't be more than 1-second, but some capture porgrams erroneously do that */
 	}
+	if (*r_time_usecs == 0 
+		&& *r_time_secs == 0
+		&& *r_original_length == 0
+		&& *r_captured_length == 0)
+		goto again;
+
 	if (*r_captured_length > sizeof_buf)
 		is_corrupt = 1;
 	if (*r_original_length < *r_captured_length)
@@ -290,25 +303,18 @@ int pcapfile_readframe(
 	if (*r_original_length > 160000)
 		is_corrupt = 1;
 
+	
 	/*
 	 * If the file is corrupted, let's move forward in the
 	 * stream and look for packets that aren't corrupted
 	 */
 	while (is_corrupt) {
 		/* TODO: we should go backwards a bit in the file */
-		unsigned char tmp[4096];
+		unsigned char tmp[16384];
 		fpos_t position;
+		fpos_t position2;
 		unsigned i;
-
-		/* Print an error message indicating corruption was found. Note
-		 * that if corruption happens past 4-gigs on a 32-bit system, this
-		 * will print an inaccurate number */
-		fprintf(stderr, "%s(%u): corruption found at 0x%08x (%d)\n", 
-			capfile->filename,
-			capfile->frame_number,
-			(unsigned)ftell(capfile->fp),
-			(unsigned)ftell(capfile->fp)
-			);
+		
 
 
 		/* Remember the current location. We are going to seek
@@ -319,6 +325,18 @@ int pcapfile_readframe(
 			fseek(capfile->fp, 0, SEEK_END);
 			return 0;
 		}
+
+		/* Print an error message indicating corruption was found. Note
+		 * that if corruption happens past 4-gigs on a 32-bit system, this
+		 * will print an inaccurate number */
+		fprintf(stderr, "%s(%u): corruption found at 0x%08llx (%lld)\n", 
+			capfile->filename,
+			capfile->frame_number,
+			position,
+			position
+			);
+
+
 
 		/* Read in the next chunk of data following the corruption. We'll search
 		 * this chunk looking for a non-corrupt packet */
@@ -351,14 +369,14 @@ int pcapfile_readframe(
 			 * structure, not an integer), so we have seek back to the 
 			 * saved value, then seek relatively forward to the
 			 * known-good spot */
+			position += i;
 			if (fsetpos(capfile->fp, &position) != 0) {
 				perror(capfile->filename);
 				fseek(capfile->fp, 0, SEEK_END);
 				return 0;
 			}
-			fseek(capfile->fp, i, SEEK_CUR);
 
-
+#if 0
 			/* We could stop here, but we are going to try one more thing.
 			 * Most cases of corruption will be because the PREVOUS packet
 			 * was truncated, not becausae the CURRENT packet was bad.
@@ -412,15 +430,17 @@ int pcapfile_readframe(
 				fseek(capfile->fp, i, SEEK_CUR);
 
 			}
-
+#endif
 
 			/* Print a message saying we've found a good packet. This will
 			 * help people figure out where in the file the corruption
 			 * happened, so they can figure out why it was corrupt.*/
-			fprintf(stderr, "%s(%u): good packet found at 0x%08x\n",
+			fgetpos(capfile->fp, &position);
+			fprintf(stderr, "%s(%u): good packet found at 0x%08llx (%lld)\n",
 				capfile->filename,
 				capfile->frame_number,
-				(unsigned)ftell(capfile->fp)
+				position,
+				position
 				);
 
 			/* Recurse, continue reading from where we know a good
