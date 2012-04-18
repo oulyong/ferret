@@ -81,6 +81,8 @@ void process_cups(struct Ferret *ferret, struct NetFrame *frame, const unsigned 
 	const unsigned char *model;
 	unsigned model_length;
 
+	frame->layer7_protocol = LAYER7_CUPS;
+
 	extract_num(px, length, &offset, &type);
 	extract_num(px, length, &offset, &state);
 

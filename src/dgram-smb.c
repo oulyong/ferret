@@ -490,6 +490,8 @@ void process_smb_dgm(struct Ferret *ferret, struct NetFrame *frame, const unsign
 	smb.user_id			= get_word(frame, px, length, &offset);
 	smb.multiplex_id	= get_word(frame, px, length, &offset);
 
+	frame->layer7_protocol = LAYER7_SMB_DGM;
+
 	switch (smb.command) {
 	case 0x25: /* Transaction Request*/
 		process_smb_dgm_transaction(ferret, frame, px, length, offset, &smb);

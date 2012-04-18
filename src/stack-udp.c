@@ -116,6 +116,7 @@ void process_udp(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
 	} udp;
 
 	ferret->statistics.udp++;
+	frame->layer4_protocol = LAYER4_UDP;
 
 	if (length == 0) {
 		FRAMERR(frame, "udp: frame empty\n");
@@ -299,7 +300,7 @@ void process_udp(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
 				;
 			else {
 				if (smellslike_bittorrent_udp(px+offset, length-offset))
-					;
+					process_bittorrent_udp(ferret, frame, px+offset, length-offset);
 				else
 					; /*
 				FRAMERR(frame, "udp: unknown, [%d.%d.%d.%d]->[%d.%d.%d.%d] src=%d, dst=%d\n", 

@@ -14,10 +14,71 @@ enum {
 	ADDRESS_ATALK_EDDP=20
 };
 
+enum {
+	LAYER3_UNKNOWN,
+	LAYER3_IP,
+	LAYER3_ARP,
+	LAYER3_IPV6,
+	LAYER3_TOTAL
+};
+
+enum {
+	LAYER4_UNKNOWN,
+	LAYER4_TCP,
+	LAYER4_UDP,
+	LAYER4_ICMP,
+	LAYER4_IGMP,
+	LAYER4_GRE,
+
+	LAYER4_TOTAL
+};
+
+
+enum {
+	LAYER7_UNKNOWN,
+	
+	LAYER7_HTTP,
+	LAYER7_MSNMSGR,
+	LAYER7_POP3,
+	LAYER7_RDP,
+	LAYER7_SMTP,
+	LAYER7_YAHOOMSGR,
+	LAYER7_AIM,
+
+	LAYER7_BITTORRENT_DHT,
+	LAYER7_CALLWAVE,
+	LAYER7_CISCO,
+	LAYER7_CUPS,
+	LAYER7_DHCP,
+	LAYER7_DNS_MCAST,
+	LAYER7_DNS_NETBIOS,
+	LAYER7_DNS_SRV,
+	LAYER7_DNS,
+	LAYER7_ISAKMP,
+	LAYER7_NETBIOS_DGM,
+	LAYER7_PPP,
+	LAYER7_SIP,
+	LAYER7_SMB_DGM,
+	LAYER7_SNMP,
+	LAYER7_SRVLOC,
+	LAYER7_SSDP,
+	LAYER7_TIVO,
+	LAYER7_UPNP,
+	LAYER7_YMSG,
+	LAYER7_LDAP,
+
+	LAYER7_TOTAL
+};
+struct TCPRECORD;
+
 struct NetFrame
 {
 	unsigned ipver;
+	unsigned is_data;
 	unsigned layer2_protocol;
+	unsigned layer3_protocol;
+	unsigned layer4_protocol;
+	unsigned layer7_protocol;
 	unsigned original_length;
 	unsigned captured_length;
 	unsigned time_secs;
@@ -46,6 +107,8 @@ struct NetFrame
 	unsigned char src_ipv6[16];
 	unsigned char dst_ipv6[16];
 	int dbm;
+
+	struct TCPRECORD *sess;
 };
 
 void FRAMERR(struct NetFrame *frame, const char *msg, ...);

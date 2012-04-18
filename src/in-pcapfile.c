@@ -312,7 +312,6 @@ int pcapfile_readframe(
 		/* TODO: we should go backwards a bit in the file */
 		unsigned char tmp[16384];
 		fpos_t position;
-		fpos_t position2;
 		unsigned i;
 		
 

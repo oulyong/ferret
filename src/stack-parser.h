@@ -51,6 +51,7 @@ void process_snmp(struct Ferret *ferret, struct NetFrame *frame, const unsigned 
 void process_upnp_response(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
 void process_srvloc(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
 void process_isakmp(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void process_bittorrent_udp(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
 void process_ldap(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
 void parse_tivo_broadcast(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
 

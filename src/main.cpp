@@ -2,6 +2,8 @@
  * Programer(s): Robert David Graham [rdg]
  */
 #include "ferret.h"
+#include "report.h"
+#include "filters.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -147,6 +149,16 @@ void sniff_packets(struct Ferret *ferret, const unsigned char *buf, const struct
 	case FERRET_SNIFF_SIFT:
 		if (!ferret->something_new_found)
 			return;
+		break;
+	case FERRET_SNIFF_FILTER:
+		{
+			unsigned include=0, exclude=0;
+			filter_eval(ferret->sniff_filters, frame, &include, &exclude);
+			if (exclude)
+				return;
+			if (!include)
+				return;
+		}
 		break;
 	default:
 		return;
@@ -604,6 +616,8 @@ int process_file(struct Ferret *ferret, const char *capfilename)
 		frame->layer2_protocol = linktype;
 		frame->frame_number = ++frame_number;
 
+		//printf("%u %u\n", frame->layer2_protocol, linktype);
+
 		/*
 		 * Analyze the packet
 		 */
@@ -881,54 +895,13 @@ main_args(int argc, char **argv, struct Ferret *ferret)
 			else
 				ferret_set_parameter(ferret, "sniffer.filename", argv[i]+2, 0);
 			
+			if (ferret->output.sniff == 0)
 			ferret_set_parameter(ferret, "sniffer.mode", "most", 0);
 			break;
 		}
 	}
 }
 
-static unsigned count_digits(uint64_t n)
-{
-	unsigned i=0;
-	for (i=0; n; i++)
-		n = n/10;
-
-	if (i == 0)
-		i = 1;
-	return i;
-}
-
-static void
-print_stats(const char *str1, unsigned stat1, const char *str2, unsigned stat2)
-{
-	size_t i;
-	unsigned digits;
-    FILE *fp = stderr;
-
-	/* first number */
-	digits = count_digits(stat1);
-	fprintf(fp, "%s", str1);
-	for (i=strlen(str1); i<16; i++)
-		fprintf(fp, ".");
-	for (i=digits; i<11; i++)
-		fprintf(fp, ".");
-	fprintf(fp, "%d", stat1);
-
-	fprintf(fp, " ");
-
-	/* second number */
-    if (str2) {
-	    digits = count_digits(stat2);
-	    fprintf(fp, "%s", str2);
-	    for (i=strlen(str2); i<16; i++)
-		    fprintf(fp, ".");
-	    for (i=digits; i<11; i++)
-		    fprintf(fp, ".");
-	    fprintf(fp, "%d", stat2);
-    }
-
-	fprintf(stderr, "\n");
-}
 
 extern "C" void t_leak_check(void);
 
@@ -1135,53 +1108,10 @@ int FERRET_MAIN(int argc, char **argv)
 		ferret->output.pf = NULL;
 	}
 
-	if (ferret->cfg.statistics_print) {
-		struct tm *tm_first;
-		struct tm *tm_last;
-		char sz_first[64], sz_last[64];
-		int diff = (int)(ferret->now-ferret->first);
-
-		tm_first = localtime(&ferret->first);
-		strftime(sz_first, sizeof(sz_first), "%Y-%m-%d %H:%M:%S", tm_first);
-		
-		tm_last = localtime(&ferret->now);
-		strftime(sz_last, sizeof(sz_last), "%Y-%m-%d %H:%M:%S", tm_last);
-
-		fprintf(stderr, "Capture started at %s and ended at %s (%d seconds)\n",
-				sz_first, sz_last, diff);
-
-		print_stats("Repeated packets",		ferret->statistics.repeated, 
-					"FCS pass",				ferret->statistics.fcs_good);
-		print_stats("FCS fail",				ferret->statistics.fcs_bad, 
-					"FCS likely.",			ferret->statistics.remaining_4);
-		print_stats("WiFi probes",			ferret->statistics.wifi_probes, 
-					"WiFi beacons",			ferret->statistics.wifi_beacons);
-		print_stats("WiFi unencrypted",		ferret->statistics.unencrypted_data,
-					"WEP encrypted",		ferret->statistics.encrypted_data);
-		print_stats("IPv4 packets",			ferret->statistics.ipv4,		
-					"IPv6 packets",			ferret->statistics.ipv6);
-		print_stats("IPX packets",			ferret->statistics.ipx,		
-					"Atalk packets",		ferret->statistics.atalk);
-		print_stats("ARP packets",			ferret->statistics.arp,
-					"ICMP packets",			ferret->statistics.icmp);
-		print_stats("TCP packets",			ferret->statistics.tcp,
-					"UDP packets",			ferret->statistics.udp);
-		print_stats("HTTP packets",			ferret->statistics.http,
-					"DNS packets",			ferret->statistics.dns);
-		print_stats("IPv4 size   64",		ferret->statistics.ip4size.size64,
-					0,			            0);
-		print_stats("IPv4 size  128",		ferret->statistics.ip4size.size128,
-					0,			            0);
-		print_stats("IPv4 size  256",	    ferret->statistics.ip4size.size256,
-					0,			            0);
-		print_stats("IPv4 size  512",		ferret->statistics.ip4size.size512,
-					0,			            0);
-		print_stats("IPv4 size 1024",		ferret->statistics.ip4size.size1024,
-					0,			            0);
-		print_stats("IPv4 size 1500",		ferret->statistics.ip4size.size1500,
-					0,			            0);
-	}
-
+	if (ferret->cfg.statistics_print)
+		report_stats1(ferret);
+	else if (ferret->cfg.report_stats2)
+		report_stats2(ferret);
 	/*
 	 * Create an artificial timeout frame
 	 */

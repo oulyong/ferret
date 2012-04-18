@@ -14,6 +14,8 @@
   what else it might be.
 */
 #include "platform.h"
+#include "ferret.h"
+#include "stack-netframe.h"
 
 enum {
 	ACT_REQUEST_PING		= 1024,
@@ -477,4 +479,9 @@ unsigned smellslike_bittorrent_udp(const unsigned char *px, unsigned length)
 			return 0;
 
 	}
+}
+
+void process_bittorrent_udp(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
+{
+	frame->layer7_protocol = LAYER7_BITTORRENT_DHT;
 }

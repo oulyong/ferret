@@ -44,6 +44,8 @@ void process_igmp(struct Ferret *ferret, struct NetFrame *frame, const unsigned 
 		unsigned group_address;
 	} igmp;
 
+	frame->layer4_protocol = LAYER4_IGMP;
+
 	if (length == 0) {
 		FRAMERR(frame, "igmp: frame empty\n");
 		return;

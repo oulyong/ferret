@@ -161,6 +161,7 @@ void strfrag_xfer(struct StringReassembler *dst, struct StringReassembler *src);
  * (potentially invalid) to the other half of the TCP stream.
  */
 struct TCPRECORD {
+	unsigned layer7_proto;
 	unsigned ip_ver;
 	unsigned char ip_src[16];
 	unsigned char ip_dst[16];

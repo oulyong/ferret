@@ -22,6 +22,11 @@ void process_frame(struct Ferret *ferret, struct NetFrame *frame, const unsigned
 {
 	unsigned i;
 
+	frame->layer3_protocol = 0;
+	frame->layer4_protocol = 0;
+	frame->layer7_protocol = 0;
+
+
 	/* Record the current time */
 	if (ferret->now != (time_t)frame->time_secs) {
 		ferret->now = (time_t)frame->time_secs;
@@ -74,9 +79,11 @@ void process_frame(struct Ferret *ferret, struct NetFrame *frame, const unsigned
 
 	switch (frame->layer2_protocol) {
 	case 1: /* Ethernet */
+		frame->is_data = 1;
 		process_ethernet_frame(ferret, frame, px, length);
 		break;
 	case 0x69: /* WiFi */
+		frame->is_data = 0;
 		process_wifi_frame(ferret, frame, px, length);
 		break;
 	case 119: /* DLT_PRISM_HEADER */
@@ -91,6 +98,7 @@ void process_frame(struct Ferret *ferret, struct NetFrame *frame, const unsigned
 		 * complicated than that, but it seems to work right now, so I'm keeping it 
 		 * this way.
 		 */
+		frame->is_data = 0;
 		if (length < 8) {
 			FRAMERR(frame, "unknown linktype = %d (expected Ethernet or wifi)\n", frame->layer2_protocol);
 			return;
@@ -117,6 +125,7 @@ void process_frame(struct Ferret *ferret, struct NetFrame *frame, const unsigned
 		break;
 
 	case 127: /* Radiotap headers */
+		frame->is_data = 0;
 		if (length < 4) {
 			//FRAMERR(frame, "radiotap headers too short\n");
 			return;
@@ -149,7 +158,25 @@ void process_frame(struct Ferret *ferret, struct NetFrame *frame, const unsigned
 		}
 		break;
 	default:
+		frame->is_data = 0;
 		FRAMERR(frame, "unknown linktype = %d (expected Ethernet or wifi)\n", frame->layer2_protocol);
 		break;
+	}
+
+	if (frame->is_data) {
+		ferret->stats2.layer3_pkts[frame->layer3_protocol]++;
+		ferret->stats2.layer3_bytes[frame->layer3_protocol] += frame->original_length;
+		if (frame->layer3_protocol == LAYER3_IP || frame->layer3_protocol == LAYER3_IPV6) {
+			ferret->stats2.layer4_pkts[frame->layer4_protocol]++;
+			ferret->stats2.layer4_bytes[frame->layer4_protocol] += frame->original_length;
+
+			switch (frame->layer4_protocol) {
+			case LAYER4_TCP:
+			case LAYER4_UDP:
+				ferret->stats2.layer7_pkts[frame->layer7_protocol]++;
+				ferret->stats2.layer7_bytes[frame->layer7_protocol] += frame->original_length;
+				break;
+			}
+		}
 	}
 }

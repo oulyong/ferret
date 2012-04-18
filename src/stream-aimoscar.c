@@ -1345,6 +1345,7 @@ void parse_aim_oscar(struct TCPRECORD *sess, struct NetFrame *frame, const unsig
 	struct AIMPARSER *aim = &sess->layer7.aim;
 	unsigned offset=0;
 
+	frame->layer7_protocol = LAYER7_AIM;
 
 	/* Run the bytes through the state machine */
 	while (offset<length)

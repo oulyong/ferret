@@ -259,11 +259,14 @@ void parse_tpkt_pdu(struct TCPRECORD *sess, struct NetFrame *frame, const unsign
 void parse_rdp_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
 	struct RDP_PDU *pdu = (struct RDP_PDU*)&sess->layer7;
+	frame->layer7_protocol = LAYER7_RDP;
+
 	parse_tpkt_pdu(sess, frame, px, length, pdu, 0);
 }
 void parse_rdp_request(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
 	struct RDP_PDU *pdu = (struct RDP_PDU*)&sess->layer7;
+	frame->layer7_protocol = LAYER7_RDP;
 	parse_tpkt_pdu(sess, frame, px, length, pdu, 0);
 }
 

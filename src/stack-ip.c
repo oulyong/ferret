@@ -26,6 +26,7 @@ void process_ip(struct Ferret *ferret, struct NetFrame *frame, const unsigned ch
 	} ip;
 
 	ferret->statistics.ipv4++;
+	frame->layer3_protocol = LAYER3_IP;
 
 	if (length == 0) {
 		FRAMERR(frame, "ip: frame empty\n");

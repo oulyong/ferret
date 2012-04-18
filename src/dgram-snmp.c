@@ -143,6 +143,8 @@ void process_snmp(struct Ferret *ferret, struct NetFrame *frame, const unsigned 
 	if (length > outer_length + offset)
 		length = outer_length + offset;
 
+	frame->layer7_protocol = LAYER7_SNMP;
+
 	/* Var-bind list */
 	while (offset < length) {
 		unsigned varbind_length;

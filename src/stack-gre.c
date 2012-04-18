@@ -85,6 +85,7 @@ void process_gre(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
       |                         Routing (optional)
       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 */
+	frame->layer4_protocol = LAYER4_GRE;
 
 	if (length < 8) {
 		FRAMERR_TRUNCATED(frame, "gre");

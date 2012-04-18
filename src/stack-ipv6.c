@@ -164,6 +164,7 @@ void process_ipv6(struct Ferret *ferret, struct NetFrame *frame, const unsigned 
 	} ip;
 
 	ferret->statistics.ipv6++;
+	frame->layer3_protocol = LAYER3_IPV6;
 
 	if (length == 0) {
 		FRAMERR(frame, "ip: frame empty\n");

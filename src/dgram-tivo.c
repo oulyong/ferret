@@ -86,6 +86,7 @@ parse_tivo_broadcast(struct Ferret *ferret, struct NetFrame *frame, const unsign
 {
 	unsigned offset=0;
 
+	frame->layer7_protocol = LAYER7_TIVO;
 
 	while (offset<length) {
 		const unsigned char *name;

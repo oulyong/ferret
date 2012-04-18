@@ -23,6 +23,9 @@ void process_callwave_iam(struct Ferret *ferret, struct NetFrame *frame, const u
 	if (length > 5) {
 		if (ex32le(px+1) == (int)length) {
 			unsigned op = px[0];
+
+			frame->layer7_protocol = LAYER7_CALLWAVE;
+
 			JOTDOWN(ferret,
 				JOT_SZ("proto", "CallWave-IAM"),
 				JOT_NUM("op",op),

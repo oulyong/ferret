@@ -130,6 +130,7 @@ void process_arp(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
 	const unsigned char *mac_dst;
 
 	ferret->statistics.arp++;
+	frame->layer3_protocol = LAYER3_ARP;
 
 	if (length < 8) {
 		FRAMERR(frame, "%s: truncated\n", "ARP");

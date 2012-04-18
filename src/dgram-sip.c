@@ -219,6 +219,8 @@ void parse_header(const unsigned char *px, unsigned length, struct Header *req)
 
 void parse_dgram_sip(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
+	frame->layer7_protocol = LAYER7_SIP;
+
 	UNUSEDPARM(ferret);UNUSEDPARM(frame);UNUSEDPARM(px);UNUSEDPARM(length);
 }
 

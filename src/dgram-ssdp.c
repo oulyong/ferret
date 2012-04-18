@@ -258,6 +258,8 @@ void parse_ssdp(struct Ferret *ferret, struct NetFrame *frame, const unsigned ch
 	struct StringReassembler name[1];
 	struct StringReassembler value[1];
 
+	frame->layer7_protocol = LAYER7_SSDP;
+
 	memset(ssdp, 0, sizeof(*ssdp));
 	memset(name, 0, sizeof(*name));
 	memset(value, 0, sizeof(*value));

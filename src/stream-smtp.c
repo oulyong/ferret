@@ -48,6 +48,7 @@ void smtp_copy(unsigned char *dst, const void *v_src, unsigned src_length)
 
 void process_simple_smtp_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
+	frame->layer7_protocol = LAYER7_SMTP;
 	UNUSEDPARM(sess);UNUSEDPARM(frame);UNUSEDPARM(px);UNUSEDPARM(length);
 }
 
@@ -185,6 +186,8 @@ void process_simple_smtp_request(struct TCPRECORD *sess, struct NetFrame *frame,
 	if (px == NULL) {
 		return;
 	}
+
+	frame->layer7_protocol = LAYER7_SMTP;
 
 	if (sess->layer7.smtpreq.is_data) {
 		process_simple_smtp_data(sess, frame, px, length);

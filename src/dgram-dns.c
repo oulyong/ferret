@@ -889,6 +889,7 @@ void process_dns(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
 	/* Count the number of DNS packets we process. This includes
 	 * all types of DNS */
 	ferret->statistics.dns++;
+	frame->layer7_protocol = LAYER7_DNS;
 
 	memset(dns, 0, sizeof(dns[0]));
 

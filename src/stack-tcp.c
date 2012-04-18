@@ -502,6 +502,8 @@ tcp_data_parse(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned ch
 			strfrag_force_backing_store(&sess->str[i]);
 	}
 
+	if (sess->layer7_proto == 0)
+		sess->layer7_proto = frame->layer7_protocol;
 }
 
 /**
@@ -642,6 +644,7 @@ void process_tcp(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
 	} tcp;
 
 	ferret->statistics.tcp++;
+	frame->layer4_protocol = LAYER4_TCP;
 
 	if (length == 0) {
 		FRAMERR(frame, "tcp: frame empty\n");
@@ -763,6 +766,22 @@ void process_tcp(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
 
 
 	SAMPLE(ferret,"TCP", JOT_NUM("flags", tcp.flags));
+
+	frame->sess = tcp_lookup_session(ferret->eng[0], 
+									frame, 
+									frame->ipver, 
+									&frame->src_ipv4, 
+									&frame->dst_ipv4, 
+									frame->src_port, 
+									frame->dst_port, 
+									tcp.seqno, 
+									TCP_LOOKUP);
+	if (frame->sess && frame->sess->layer7_proto)
+		frame->layer7_protocol = frame->sess->layer7_proto;
+	else {
+		if (tcp.src_port == 80 || tcp.dst_port == 80)
+			frame->layer7_protocol = LAYER7_HTTP;
+	}
 
 	/* Process an "acknowledgement". Among other things, this will identify
 	 * when packets have been missed: if the other side claims to have

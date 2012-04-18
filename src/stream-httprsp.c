@@ -346,6 +346,7 @@ void parse_http_response(struct TCPRECORD *sess, struct NetFrame *frame, const u
 	}
 
 	sess->eng->ferret->statistics.http++;
+	frame->layer7_protocol = LAYER7_HTTP;
 
 /*
 HTTP/1.1 200 OK

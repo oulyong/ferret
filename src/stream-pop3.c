@@ -91,6 +91,9 @@ void parse_pop3_response(struct TCPRECORD *sess, struct NetFrame *frame, const u
 	S_EOM_DOT,
 	S_EOM_CR,
 	};
+
+	frame->layer7_protocol = LAYER7_POP3;
+
 	while (offset<length)
 	switch (state) {
 	case S_START:
@@ -523,6 +526,7 @@ void parse_pop3_request(struct TCPRECORD *sess, struct NetFrame *frame, const un
 		return;
 	}
 
+	frame->layer7_protocol = LAYER7_POP3;
 
 	state = req->state;
 	

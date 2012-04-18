@@ -18,6 +18,7 @@ extern "C" {
 #include <time.h>
 
 #include "util-stringtab.h"
+#include "stack-netframe.h"
 
 //struct SeapName;
 //struct SeapValue;
@@ -41,7 +42,8 @@ enum {
 	FERRET_SNIFF_ALL,
 	FERRET_SNIFF_MOST,
 	FERRET_SNIFF_IVS,
-	FERRET_SNIFF_SIFT
+	FERRET_SNIFF_SIFT,
+	FERRET_SNIFF_FILTER,
 };
 
 struct BeaconEntry {
@@ -113,9 +115,19 @@ struct Snarfer {
 	unsigned max_files;
 };
 
-struct Filter {
+struct InFilter {
 	unsigned char **mac_address;
 	unsigned mac_address_count;
+};
+
+struct Stats2 {
+	uint64_t layer3_pkts[LAYER3_TOTAL];
+	uint64_t layer4_pkts[LAYER4_TOTAL];
+	uint64_t layer7_pkts[LAYER7_TOTAL];
+	
+	uint64_t layer3_bytes[LAYER3_TOTAL];
+	uint64_t layer4_bytes[LAYER4_TOTAL];
+	uint64_t layer7_bytes[LAYER7_TOTAL];
 };
 
 struct Statistics {
@@ -252,6 +264,8 @@ struct Ferret
 		unsigned no_vectors:1;
 		unsigned no_hamster:1;
 		unsigned statistics_print:1;
+		unsigned report_stats2:1;
+		unsigned report_start:1;
 		unsigned quiet:1; /* global quiet flag that turns off reporting with -q on the command line */
 		unsigned is_speed_timer:1; 
 		char *echo;
@@ -293,9 +307,12 @@ struct Ferret
 	} streamer;
 
 
-	struct Filter filter;
+	struct InFilter filter;
 
 	struct Statistics statistics;
+	struct Stats2 stats2;
+
+	struct SniffFilter *sniff_filters;
 };
 
 struct Ferret *ferret_create();
@@ -327,7 +344,7 @@ ferret_set_parameter(struct Ferret *ferret, const char *name, const char *value,
  * then the system should drop the packet and ignore it.
  */
 int
-ferret_filter_mac(struct Ferret *ferret, const unsigned char *mac_addr);
+ferret_infilter_mac(struct Ferret *ferret, const unsigned char *mac_addr);
 
 
 void 

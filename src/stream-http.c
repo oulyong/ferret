@@ -403,6 +403,7 @@ void parse_http_request(struct TCPRECORD *sess, struct NetFrame *frame, const un
 	}
 
 	sess->eng->ferret->statistics.http++;
+	frame->layer7_protocol = LAYER7_HTTP;
 
 	offset = 0;
 

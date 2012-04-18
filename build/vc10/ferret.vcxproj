@@ -170,6 +170,7 @@
     <ClCompile Include="..\..\src\dgram-ymsg.c" />
     <ClCompile Include="..\..\src\ferret.c" />
     <ClCompile Include="..\..\src\file-jpeg.c" />
+    <ClCompile Include="..\..\src\filter-proto.c" />
     <ClCompile Include="..\..\src\in-pcapfile.c" />
     <ClCompile Include="..\..\src\in-pcaplive.c" />
     <ClCompile Include="..\..\src\main.cpp" />
@@ -177,6 +178,7 @@
     <ClCompile Include="..\..\src\out-hamster.c" />
     <ClCompile Include="..\..\src\out-jotdown.c" />
     <ClCompile Include="..\..\src\pixie.c" />
+    <ClCompile Include="..\..\src\report-stats.c" />
     <ClCompile Include="..\..\src\stack-arp.c" />
     <ClCompile Include="..\..\src\stack-atalkddp.c" />
     <ClCompile Include="..\..\src\stack-ethernet.c" />
@@ -218,11 +220,13 @@
     <ClInclude Include="..\..\src\crypto-wificrc.h" />
     <ClInclude Include="..\..\src\dgram-dns.h" />
     <ClInclude Include="..\..\src\ferret.h" />
+    <ClInclude Include="..\..\src\filters.h" />
     <ClInclude Include="..\..\src\in-pcapfile.h" />
     <ClInclude Include="..\..\src\in-pcaplive.h" />
     <ClInclude Include="..\..\src\out-jotdown.h" />
     <ClInclude Include="..\..\src\pixie.h" />
     <ClInclude Include="..\..\src\platform.h" />
+    <ClInclude Include="..\..\src\report.h" />
     <ClInclude Include="..\..\src\stack-asn1.h" />
     <ClInclude Include="..\..\src\stack-extract.h" />
     <ClInclude Include="..\..\src\stack-netframe.h" />

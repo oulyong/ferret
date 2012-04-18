@@ -25,6 +25,8 @@ void process_isakmp(struct Ferret *ferret, struct NetFrame *frame, const unsigne
     UNUSEDPARM(px);
     UNUSEDPARM(length);
 
+	frame->layer7_protocol = LAYER7_ISAKMP;
+
 	return; /*TODO: add code later */
 #if 0
     unsigned type;

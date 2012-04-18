@@ -457,6 +457,8 @@ void process_dhcp(struct Ferret *ferret, struct NetFrame *frame, const unsigned 
 		return;
 	offset += 4;
 
+	frame->layer7_protocol = LAYER7_DHCP;
+
 	/* Process special options */
 	dhcp.msg = dhcp_number(px, length, 53);
 	switch (dhcp.msg) {

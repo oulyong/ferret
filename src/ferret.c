@@ -14,8 +14,9 @@
 #include "util-housekeeping.h"
 #include "util-hexval.h"
 #include "platform.h"
+#include "filters.h"
 
-unsigned cfg_prefix(const char *name, const char *prefix, unsigned offset)
+static unsigned cfg_prefix(const char *name, const char *prefix, unsigned offset)
 {
 	unsigned i, p;
 
@@ -137,12 +138,13 @@ config_echo(struct Ferret *ferret, FILE *fp)
 	LOG_NUM("interface.interval.active", ferret->interface_interval_active);
 	LOG_SZ("sniffer.directory", ferret->output.directory);
 	LOG_SZ("sniffer.filename", ferret->output.filename);
-	log_choice(fp, "sniffer.mode", ferret->output.sniff, "none\0all\0most\0ivs\0sift\0\0");
+	log_choice(fp, "sniffer.mode", ferret->output.sniff, "none\0all\0most\0ivs\0sift\0proto\0\0");
 	LOG_SZ("snarfer.directory", ferret->snarfer.directory);
 	log_choice(fp, "snarfer.mode", ferret->snarfer.mode, "none\0all\0most\0\0");
 	log_choice(fp, "vector.mode", ferret->cfg.no_vectors, "sift\0none\0\0");
 	log_choice(fp, "hamster.mode", ferret->cfg.no_hamster, "sift\0none\0\0");
 	LOG_BOOL("statistics.print", ferret->cfg.statistics_print);
+	LOG_BOOL("report.stats", ferret->cfg.report_stats2);
 	LOG_BOOL("config.quiet", ferret->cfg.quiet);
 
 	/* Print the MAC addresses that we are filtering out */
@@ -164,7 +166,7 @@ config_echo(struct Ferret *ferret, FILE *fp)
  * should be a more efficient table
  */
 int
-ferret_filter_mac(struct Ferret *ferret, const unsigned char *mac_addr)
+ferret_infilter_mac(struct Ferret *ferret, const unsigned char *mac_addr)
 {
 	unsigned i;
 
@@ -211,6 +213,11 @@ ferret_set_parameter(struct Ferret *ferret, const char *name, const char *value,
 	
 	/* This macro is defined to match the leading keyword */
 	#define MATCH(str) cfg_prefix(name, str, x) && ((x=cfg_prefix(name, str, x))>0)
+
+	if (MATCH("filter")) {
+		filter_set_parameter(ferret, name, value);
+		return;
+	}
 
 	if (MATCH("config")) {
 		if (MATCH("echo")) {
@@ -309,6 +316,17 @@ ferret_set_parameter(struct Ferret *ferret, const char *name, const char *value,
 		}
 	} else if (MATCH("statistics")) {
 		ferret->cfg.statistics_print = parse_boolean(value);
+	} else if (MATCH("report")) {
+		if (ferret->cfg.report_start == 0) {
+			ferret->cfg.no_hamster = 1;
+			ferret->cfg.no_vectors = 1;
+			ferret->cfg.statistics_print = 0;
+			ferret->cfg.report_start = 1;
+		}
+		if (memcmp(value, "stat", 4)==0)
+			ferret->cfg.report_stats2 = 1;
+		else
+			fprintf(stderr, "cfg: unknown: %s=%s\n", name, value);
 	} else if (MATCH("sniffer")) {
 		if (MATCH("dir")) {
 			const char *directory_name = value;

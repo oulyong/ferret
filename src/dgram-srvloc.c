@@ -104,6 +104,8 @@ void process_srvloc(struct Ferret *ferret, struct NetFrame *frame, const unsigne
 		return;
 	}
 
+	frame->layer7_protocol = LAYER7_SRVLOC;
+
 	switch (px[0]) {
 	case 0x01:
 		process_srvloc_v1(ferret, frame, px, length);

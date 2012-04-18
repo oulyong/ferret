@@ -232,9 +232,6 @@ void process_ldap(struct Ferret *ferret, struct NetFrame *frame, const unsigned 
 	unsigned outer_length;
 	struct LDAP ldap[1];
 
-	if (ferret)
-		return;
-
 	memset(ldap, 0, sizeof(ldap[0]));
 
 	/* tag */
@@ -263,5 +260,7 @@ void process_ldap(struct Ferret *ferret, struct NetFrame *frame, const unsigned 
 		FRAMERR_BADVAL(frame, "ldap", ldap->message_type);
 		break;
 	}
+
+	frame->layer7_protocol = LAYER7_LDAP;
 }
 

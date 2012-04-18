@@ -35,6 +35,8 @@ void stack_tcp_ymsg_client_request(struct TCPRECORD *sess, struct NetFrame *fram
 	unsigned state = sess->layer7_state;
 	struct StringReassembler *ymsg_packet = sess->str+0;
 
+	frame->layer7_protocol = LAYER7_YMSG;
+
 	while (offset < length)
 	switch (state) {
 	case 0:
@@ -113,6 +115,8 @@ void stack_tcp_ymsg_server_response(struct TCPRECORD *sess, struct NetFrame *fra
 	unsigned offset=0;
 	unsigned state = sess->layer7_state;
 	struct StringReassembler *ymsg_packet = sess->str+0;
+
+	frame->layer7_protocol = LAYER7_YMSG;
 
 	while (offset < length)
 	switch (state) {

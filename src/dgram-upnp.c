@@ -25,6 +25,8 @@ void process_upnp_response(struct Ferret *ferret, struct NetFrame *frame, const 
 {
 	unsigned offset=0;
 
+	frame->layer7_protocol = LAYER7_UPNP;
+
 	while (offset < length) {
 		const unsigned char *line = px+offset;
 		unsigned line_length;

@@ -1173,6 +1173,7 @@ void process_msnms_server_response(struct TCPRECORD *sess, struct NetFrame *fram
 	if (px == NULL) {
 		return;
 	}
+	frame->layer7_protocol = LAYER7_MSNMSGR;
 
 	/* Run a state-machine reassembling the commands */
 	while (offset < length)
@@ -1246,6 +1247,8 @@ void process_simple_msnms_client_request(struct TCPRECORD *sess, struct NetFrame
 	if (px == NULL) {
 		return;
 	}
+
+	frame->layer7_protocol = LAYER7_MSNMSGR;
 
 	/* Run a state-machine reassembling the commands */
 	while (offset < length)

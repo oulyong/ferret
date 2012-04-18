@@ -461,7 +461,7 @@ void process_wifi_associate_request(struct Ferret *ferret, struct NetFrame *fram
 	memcpy(wifimgmt.source, px+10, 6);
 	memcpy(wifimgmt.bss_id, px+16, 6);
 
-	if (ferret_filter_mac(ferret, wifimgmt.destination) | ferret_filter_mac(ferret, wifimgmt.source)) {
+	if (ferret_infilter_mac(ferret, wifimgmt.destination) | ferret_infilter_mac(ferret, wifimgmt.source)) {
 		frame->flags.found.filtered = 1;
 		return;
 	}
@@ -740,6 +740,7 @@ void process_wifi_data(struct Ferret *ferret, struct NetFrame *frame, const unsi
 		; //FRAMERR(frame, "wifi.data: too short\n");
 		return;
 	}
+	frame->is_data = 1;
 
 	switch (px[1]&0x03) {
 	case 0:
@@ -1079,6 +1080,7 @@ unsigned test_wep_decrypt(struct Ferret *ferret, struct NetFrame *frame,
  */
 void process_wifi_frame(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
+	frame->is_data = 0;
 	SAMPLE(ferret,"wifi", JOT_NUM("type", px[0]));
 	switch (px[0]) {
 	case 0x00: /* association request */

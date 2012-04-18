@@ -134,6 +134,8 @@ void process_netbios_dgm(struct Ferret *ferret, struct NetFrame *frame, const un
 		return;
 	}
 
+	frame->layer7_protocol = LAYER7_NETBIOS_DGM;
+
 	if (offset > 4 && memcmp(px+offset, "\xFFSMB", 4) == 0)
 		process_smb_dgm(ferret, frame, px+offset, length-offset);
 	else {

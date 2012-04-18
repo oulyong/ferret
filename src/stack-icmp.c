@@ -19,6 +19,7 @@ void process_icmp(struct Ferret *ferret, struct NetFrame *frame, const unsigned 
 	UNUSEDPARM(length);UNUSEDPARM(frame);UNUSEDPARM(checksum);
 
 	ferret->statistics.icmp++;
+	frame->layer4_protocol = LAYER4_ICMP;
 
 	JOTDOWN(ferret, 
 		JOT_SZ("TEST","icmp"),
@@ -34,6 +35,9 @@ void process_icmpv6(struct Ferret *ferret, struct NetFrame *frame, const unsigne
 	unsigned checksum = ex16be(px+2);
 
 	UNUSEDPARM(length);UNUSEDPARM(frame);UNUSEDPARM(checksum);
+
+	frame->layer4_protocol = LAYER4_ICMP;
+
 	JOTDOWN(ferret, 
 		JOT_SZ("TEST","icmp"),
 		JOT_NUM("type",type),
