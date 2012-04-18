@@ -240,7 +240,7 @@ unsigned pcapfile_percentdone(struct PcapFile *capfile, uint64_t *r_bytes_read)
 /**
  * Read the next packet from the file stream.
  */
-int pcapfile_readframe2(
+int pcapfile_readframe(
 	struct PcapFile *capfile,
 	unsigned *r_time_secs,
 	unsigned *r_time_usecs,
