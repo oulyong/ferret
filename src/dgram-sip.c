@@ -217,10 +217,89 @@ void parse_header(const unsigned char *px, unsigned length, struct Header *req)
 	}
 }
 
-void parse_dgram_sip(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
+enum SIP_TYPE {
+	SIP_TYPE_UNKNOWN,
+	SIP_TYPE_NOTIFY,
+};
+
+struct SIP {
+	enum SIP_TYPE type;
+};
+
+static int
+match(const char *sz, const unsigned char *name, unsigned name_length)
+{
+	if (memicmp(name, sz, name_length) == 0 || sz[name_length] == '\0')
+		return 1;
+	else
+		return 0;
+}
+
+static void
+sip_method(struct SIP *sip, 
+	const unsigned char *name, unsigned name_length, 
+	const unsigned char *value, unsigned value_length)
+{
+	if (match("NOTIFY", name, name_length)) {
+		sip->type = SIP_TYPE_NOTIFY;
+	} else
+		sip->type = SIP_TYPE_UNKNOWN;
+}
+
+void parse_dgram_sip_request(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
+{
+	unsigned offset = 0;
+	struct SIP sip;
+
+	frame->layer7_protocol = LAYER7_SIP;
+
+	while (offset < length) {
+		unsigned i;
+		unsigned line_length;
+		unsigned name_length;
+		unsigned value_offset;
+
+		/* Find the end of the line */
+		for (i=0; offset+i<length && px[offset+i] != '\n'; i++)
+			;
+
+		/* Find the total length of the line minus space at end */
+		line_length = i;
+		while (line_length > 0 && isspace(px[offset+line_length-1]))
+			line_length--;
+
+		/* Find the first keyword */
+		if (offset == 0) {
+			while (name_length < line_length && !isspace(px[offset+name_length]))
+				name_length++;
+			value_offset = name_length;
+			while (value_offset < line_length && isspace(px[offset+value_offset]))
+				value_offset++;
+		} else {
+			while (name_length < line_length && px[offset+name_length] != ':')
+				name_length++;
+			value_offset = name_length;
+			if (value_offset < line_length && px[offset+value_offset] == ':')
+				value_offset++;
+			while (value_offset < line_length && isspace(px[offset+value_offset]))
+				value_offset++;
+		}
+ 
+		/* Now parse the <name=value> pair */
+		if (offset == 0)
+			sip_method(&sip, px+offset, name_length, px+offset+value_offset, line_length-value_offset);
+
+	}
+
+
+	UNUSEDPARM(ferret);UNUSEDPARM(frame);UNUSEDPARM(px);UNUSEDPARM(length);
+}
+
+void parse_dgram_sip_response(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
 	frame->layer7_protocol = LAYER7_SIP;
 
 	UNUSEDPARM(ferret);UNUSEDPARM(frame);UNUSEDPARM(px);UNUSEDPARM(length);
 }
+
 

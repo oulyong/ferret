@@ -140,6 +140,9 @@ struct NameVal layer3names[] = {
 	{LAYER3_IP, "IP"},
 	{LAYER3_ARP, "ARP"},
 	{LAYER3_IPV6, "IPV6"},
+	{LAYER3_MGMT, "MGMT"},
+	{LAYER3_STP, "STP"},
+	{LAYER3_NETBEUI, "NETBEUI"},
 	{LAYER3_TOTAL, "TOTAL"},
 	{0,0}
 };
@@ -156,14 +159,19 @@ struct NameVal layer4names[] = {
 };
 
 struct NameVal layer7names[] = {
-	{LAYER7_UNKNOWN, "unknown7"},
-	{LAYER7_HTTP, "HTTP"},
-	{LAYER7_MSNMSGR, "MSNMSGR"},
-	{LAYER7_POP3, "POP3"},
-	{LAYER7_RDP, "RDP"},
-	{LAYER7_SMTP, "SMTP"},
-	{LAYER7_YAHOOMSGR, "YAHOOMSGR"},
-	{LAYER7_AIM, "AIM"},
+	{LAYER7_UNKNOWN,	"unknown7"},
+	{LAYER7_HTTP,		"HTTP"},
+	{LAYER7_MSNMSGR,	"MSNMSGR"},
+	{LAYER7_POP3,		"POP3"},
+	{LAYER7_RDP,		"RDP"},
+	{LAYER7_SMTP,		"SMTP"},
+	{LAYER7_YAHOOMSGR,	"YAHOOMSGR"},
+	{LAYER7_AIM,		"AIM"},
+	{LAYER7_SSL,		"SSL"},
+	{LAYER7_DCERPC,		"DCERPC"},
+	{LAYER7_SMB,		"SMB"},
+
+
 	{LAYER7_BITTORRENT_DHT, "BITTORRENT_DHT"},
 	{LAYER7_CALLWAVE, "CALLWAVE"},
 	{LAYER7_CISCO, "CISCO"},
@@ -235,7 +243,8 @@ report_stats2(struct Ferret *ferret)
 
 	/* MUST MATCH THE ENUM IN "NETFRAME.H" */
 	static const char *layer3_names[] = {
-		"unknown3", "IPv4", "ARP", "IPv6", 
+		"unknown3", "IPv4", "ARP", "IPv6", "MGMT", "STP", "NETBEUI",
+		"BADFOOD"
 	};
 	static const char *layer4_names[] = {
 		"unknown4", "TCP", "UDP", "ICMP", "IGMP", "GRE",
@@ -250,6 +259,9 @@ report_stats2(struct Ferret *ferret)
 	"SMTP",
 	"YAHOOMSGR",
 	"AIM",
+	"SSL",
+	"DCERPC",
+	"SMB",
 
 	"BITTORRENT_DHT",
 	"CALLWAVE",

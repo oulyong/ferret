@@ -65,6 +65,8 @@ void process_simple_smtp_data(struct TCPRECORD *sess, struct NetFrame *frame, co
 	if (sess == NULL)
 		return;
 
+	frame->layer7_protocol = LAYER7_SMTP;
+
 	while (offset<length) {
 
 		/* Handle end-of-email '.' issue */

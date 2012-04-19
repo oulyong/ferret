@@ -18,6 +18,8 @@
 
 typedef unsigned char MACADDR[6];
 
+void process_llc_frame(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
+
 
 void dispatch_ethertype(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length, unsigned oui, unsigned ethertype)
 {
@@ -39,13 +41,39 @@ void dispatch_ethertype(struct Ferret *ferret, struct NetFrame *frame, const uns
 	case 0x0806:
 		process_arp(ferret, frame, px, length);
 		break;
+	case 0x8100:
+		if (length < 4)
+			return;
+		ethertype = ex16be(px+2);
+		if (ethertype <= 1518) {
+			unsigned new_length = ethertype;
+
+			px += 4;
+			length -= 4;
+			if (new_length > length) {
+				FRAMERR_BADVAL(frame, "ethertype", ethertype);
+				return;
+			} else if (new_length < length)
+				length = new_length;
+			process_llc_frame(ferret, frame, px, length);
+			return;
+		} else {
+			dispatch_ethertype(ferret, frame, px+4, length-4, oui, ethertype);
+		}
+		break;
 	case 0x888e: /*802.11x authentication*/
 		process_802_1x_auth(ferret, frame, px, length);
+		break;
+	case 0x88cc: /* Link Layer Discovery Protocol */
+		frame->layer3_protocol = LAYER3_MGMT;
 		break;
 	case 0x86dd: /* IPv6*/
 		process_ipv6(ferret, frame, px, length);
 		break;
 	case 0x872d: /* Cisco OWL */
+		break;
+	case 0x886d:
+		frame->layer3_protocol = LAYER3_MGMT;
 		break;
 	case 0x9000: /* Loopback */
 		break;
@@ -71,6 +99,8 @@ void process_spanningtree_frame(struct Ferret *ferret, struct NetFrame *frame, c
 		FRAMERR_TRUNCATED(frame, "SpanningTree");
 		return;
 	}
+
+	frame->layer3_protocol = LAYER3_STP;
 
 	protocol_identifier = ex16be(px);
 	protocol_version = px[2];
@@ -187,7 +217,9 @@ void process_llc_frame(struct Ferret *ferret, struct NetFrame *frame, const unsi
 
 	if (dsap == 0xAA || ssap == 0xAA)
 		process_snap_frame(ferret, frame, px+offset, length-offset);
-	else if (dsap == 0x42 || ssap == 0x42)
+	else if ((dsap == 0xf0 || ssap == 0xf0) && (offset+4 < length) && ex16le(px+offset+2) == 0xefff) {
+		frame->layer3_protocol = LAYER3_NETBEUI;
+	} else if (dsap == 0x42 || ssap == 0x42)
 		process_spanningtree_frame(ferret, frame, px+offset, length-offset);
 	else {
 		FRAMERR_UNPARSED(frame, "LLC:dsap:ssap", ((dsap<<8)|(ssap)));

@@ -265,6 +265,7 @@ struct Ferret
 		unsigned no_hamster:1;
 		unsigned statistics_print:1;
 		unsigned report_stats2:1;
+		unsigned report_filter_stats:1;
 		unsigned report_start:1;
 		unsigned quiet:1; /* global quiet flag that turns off reporting with -q on the command line */
 		unsigned is_speed_timer:1; 

@@ -105,6 +105,18 @@ smellslike_udp_dhcp(struct Ferret *ferret, struct NetFrame *frame, const unsigne
     UNUSEDPARM(direction);
 }
 
+int
+has_newline(const unsigned char *px, unsigned offset, unsigned length)
+{
+	length--;
+	while (offset < length) {
+		if (px[offset] == '\r' && px[offset+1] == '\n')
+			return 1;
+		offset++;
+	}
+	return 0;
+}
+
 void process_udp(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
 	unsigned offset=0;
@@ -157,7 +169,60 @@ void process_udp(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
 	SAMPLE(ferret,"UDP", JOT_NUM("src", udp.src_port));
 	SAMPLE(ferret,"UDP", JOT_NUM("dst", udp.dst_port));
 
+	/*
+	 * SIP
+	 */
+	if (udp.src_port > 1024 && udp.dst_port > 1024 && length-offset > 12) {
+		if (memicmp(px+offset, "INVITE sip:", 11) == 0 && has_newline(px, offset, length)) {
+			parse_dgram_sip_request(ferret, frame, px+offset, length-offset);
+			return;
+		}
+		if (memicmp(px+offset, "ACK sip:", 8) == 0 && has_newline(px, offset, length)) {
+			parse_dgram_sip_request(ferret, frame, px+offset, length-offset);
+			return;
+		}
+		if (memicmp(px+offset, "CANCEL", 6) == 0 && has_newline(px, offset, length)) {
+			parse_dgram_sip_request(ferret, frame, px+offset, length-offset);
+			return;
+		}
+		if (memicmp(px+offset, "OPTIONS sip:", 7) == 0 && has_newline(px, offset, length)) {
+			parse_dgram_sip_request(ferret, frame, px+offset, length-offset);
+			return;
+		}
+		if (memicmp(px+offset, "BYE sip:", 8) == 0 && has_newline(px, offset, length)) {
+			parse_dgram_sip_request(ferret, frame, px+offset, length-offset);
+			return;
+		}
+		if (memicmp(px+offset, "REFER", 5) == 0 && has_newline(px, offset, length)) {
+			parse_dgram_sip_request(ferret, frame, px+offset, length-offset);
+			return;
+		}
+		if (memicmp(px+offset, "NOTIFY ", 7) == 0 && has_newline(px, offset, length) && frame->dst_port != 1900) {
+			parse_dgram_sip_request(ferret, frame, px+offset, length-offset);
+			return;
+		}
+		if (memicmp(px+offset, "MESSAGE", 7) == 0 && has_newline(px, offset, length)) {
+			parse_dgram_sip_request(ferret, frame, px+offset, length-offset);
+			return;
+		}
+		if (memicmp(px+offset, "SUBSCRIBE", 9) == 0 && has_newline(px, offset, length)) {
+			parse_dgram_sip_request(ferret, frame, px+offset, length-offset);
+			return;
+		}
+		if (memicmp(px+offset, "INFO", 4) == 0 && has_newline(px, offset, length)) {
+			parse_dgram_sip_request(ferret, frame, px+offset, length-offset);
+			return;
+		}
+		if (memicmp(px+offset, "REGISTER sip:", 13) == 0 && has_newline(px, offset, length)) {
+			parse_dgram_sip_request(ferret, frame, px+offset, length-offset);
+			return;
+		}
 
+		if (memicmp(px+offset, "SIP/", 4) == 0 && has_newline(px, offset, length)) {
+			parse_dgram_sip_response(ferret, frame, px+offset, length-offset);
+			return;
+		}
+	}
 
     /*********************
      *  SSS   RRR    CCC

@@ -7,6 +7,7 @@
 #include "stack-extract.h"
 #include "util-housekeeping.h"
 #include "stack-tcpchecksum.h"
+#include "stack-smells.h"
 
 #include <ctype.h>
 #include <string.h>
@@ -47,8 +48,21 @@ FERRET_PARSER reverse_parser(FERRET_PARSER forward)
 {
 	if (parse_http_request == forward)
 		return (FERRET_PARSER)parse_http_response;
+	if (parse_rdp_request == forward)
+		return (FERRET_PARSER)parse_rdp_response;
+	if (process_simple_smtp_request == forward)
+		return (FERRET_PARSER)process_simple_smtp_response;
+	if (parse_ssl_request == forward)
+		return (FERRET_PARSER)parse_ssl_response;
+	if (parse_dcerpc_request == forward)
+		return (FERRET_PARSER)parse_dcerpc_response;
+	if (parse_smb_request == forward)
+		return (FERRET_PARSER)parse_smb_response;
+
+
 	return 0;
 }
+
 
 /**
  * Runs a heuristic over the packet data to see if it looks like the HTTP 
@@ -297,10 +311,23 @@ extern unsigned smellslike_aim_oscar(const unsigned char *px, unsigned length);
  * Run various heuristics on the TCP connection in order to figure out a likely
  * protocol parser for it.
  */
-FERRET_PARSER tcp_smellslike(const unsigned char *px, unsigned length, unsigned src_port, unsigned dst_port)
+FERRET_PARSER tcp_smellslike(const unsigned char *px, unsigned length, const struct NetFrame *frame)
 {
+	unsigned src_port = frame->src_port;
+	unsigned dst_port = frame->dst_port;
+	struct SmellsSSL smell;
+	struct SmellsDCERPC dcerpc;
+
 	if (smellslike_httprequest(px, length))
 		return (FERRET_PARSER)parse_http_request;
+
+	smell.state = 0;
+	if (smellslike_ssl_request(frame, &smell, px, length))
+		return (FERRET_PARSER)parse_ssl_request;
+
+	dcerpc.state = 0;
+	if (smellslike_msrpc_toserver(&dcerpc, px, length))
+		return (FERRET_PARSER)parse_dcerpc_request;
 
 	if ((src_port == 5190 || dst_port == 5190) && length > 6 && px[0] == 0x2a && 1 <= px[1] && px[1] <= 5)
 		return (FERRET_PARSER)parse_aim_oscar;
@@ -311,6 +338,14 @@ FERRET_PARSER tcp_smellslike(const unsigned char *px, unsigned length, unsigned 
 	if ((src_port == 443 || dst_port == 443) && length > 6 && px[0] == 0x2a && 1 <= px[1] && px[1] <= 5 && smellslike_aim_oscar(px, length))
 		return (FERRET_PARSER)parse_aim_oscar;
 
+	if ((src_port == 443 && dst_port > 1024) || (dst_port == 443 && src_port > 1024))
+		return (FERRET_PARSER)parse_ssl_request;
+	if ((src_port == 465 && dst_port > 1024) || (dst_port == 465 && src_port > 1024))
+		return (FERRET_PARSER)parse_ssl_request;
+	if ((src_port == 993 && dst_port > 1024) || (dst_port == 993 && src_port > 1024))
+		return (FERRET_PARSER)parse_ssl_request;
+	if ((src_port == 995 && dst_port > 1024) || (dst_port == 995 && src_port > 1024))
+		return (FERRET_PARSER)parse_ssl_request;
 
 	return NULL;
 }
@@ -570,7 +605,7 @@ tcp_data(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px,
 	 * Figure out what the TCP connection contains
 	 */
 	if (sess->parser == NULL)
-		sess->parser = tcp_smellslike(px, length, frame->src_port, frame->dst_port);
+		sess->parser = tcp_smellslike(px, length, frame);
 
 	if (sess->parser == NULL) {
 		if (frame->dst_port == 5050 || frame->src_port == 5050 && length > 4 && memcmp(px, "YMSG", 4)) {
@@ -781,6 +816,18 @@ void process_tcp(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
 	else {
 		if (tcp.src_port == 80 || tcp.dst_port == 80)
 			frame->layer7_protocol = LAYER7_HTTP;
+		else if (tcp.src_port == 443 || tcp.dst_port == 443)
+			frame->layer7_protocol = LAYER7_SSL;
+		else if (tcp.src_port == 25 || tcp.dst_port == 25)
+			frame->layer7_protocol = LAYER7_SMTP;
+		else if (tcp.src_port == 139 || tcp.dst_port == 139)
+			frame->layer7_protocol = LAYER7_SMB;
+		else if (tcp.src_port == 445 || tcp.dst_port == 445)
+			frame->layer7_protocol = LAYER7_SMB;
+		else if (tcp.src_port == 110 || tcp.dst_port == 110)
+			frame->layer7_protocol = LAYER7_POP3;
+		else if (tcp.src_port == 135 || tcp.dst_port == 135)
+			frame->layer7_protocol = LAYER7_DCERPC;
 	}
 
 	/* Process an "acknowledgement". Among other things, this will identify

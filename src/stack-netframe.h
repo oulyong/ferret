@@ -19,6 +19,9 @@ enum {
 	LAYER3_IP,
 	LAYER3_ARP,
 	LAYER3_IPV6,
+	LAYER3_MGMT,
+	LAYER3_STP,
+	LAYER3_NETBEUI,
 	LAYER3_TOTAL
 };
 
@@ -34,7 +37,7 @@ enum {
 };
 
 
-enum {
+enum LAYER7_PROTOCOL {
 	LAYER7_UNKNOWN,
 	
 	LAYER7_HTTP,
@@ -44,6 +47,9 @@ enum {
 	LAYER7_SMTP,
 	LAYER7_YAHOOMSGR,
 	LAYER7_AIM,
+	LAYER7_SSL,
+	LAYER7_DCERPC,
+	LAYER7_SMB,
 
 	LAYER7_BITTORRENT_DHT,
 	LAYER7_CALLWAVE,
@@ -67,6 +73,7 @@ enum {
 	LAYER7_YMSG,
 	LAYER7_LDAP,
 
+
 	LAYER7_TOTAL
 };
 struct TCPRECORD;
@@ -78,7 +85,7 @@ struct NetFrame
 	unsigned layer2_protocol;
 	unsigned layer3_protocol;
 	unsigned layer4_protocol;
-	unsigned layer7_protocol;
+	enum LAYER7_PROTOCOL layer7_protocol;
 	unsigned original_length;
 	unsigned captured_length;
 	unsigned time_secs;

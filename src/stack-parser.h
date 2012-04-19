@@ -55,13 +55,24 @@ void process_bittorrent_udp(struct Ferret *ferret, struct NetFrame *frame, const
 void process_ldap(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
 void parse_tivo_broadcast(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
 
-void parse_dgram_sip(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void parse_dgram_sip_request(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void parse_dgram_sip_response(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
 
 void parse_jpeg_ichat_image(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
 
 
 void parse_http_request(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
 void parse_http_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
+
+void parse_ssl_request(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void parse_ssl_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
+
+void parse_dcerpc_request(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void parse_dcerpc_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
+
+void parse_smb_request(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void parse_smb_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
+
 
 void process_msnms_server_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
 void process_simple_msnms_client_request(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);

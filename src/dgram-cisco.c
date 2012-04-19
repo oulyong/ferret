@@ -34,6 +34,8 @@ parse_CDP(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px
 		return;
 	}
 
+	frame->layer3_protocol = LAYER3_MGMT;
+
 	version = px[offset++];
 	ttl = px[offset++];
 	checksum = ex16be(px+2);
@@ -231,6 +233,8 @@ void parse_PVSTP(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
 		FRAMERR(frame, "unexpected\n");
 		return;
 	}
+
+	frame->layer3_protocol = LAYER3_STP;
 
 	/* Protocol Version Identifier */
 	if (px[2] != 0) {

@@ -252,6 +252,27 @@
     <ClCompile Include="..\..\src\filter-proto.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\stream-ssl.c">
+      <Filter>Source Files\stream app</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filter-addr.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\parse-address.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\stack-smells.c">
+      <Filter>Source Files\stack</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\stream-dcerpc.c">
+      <Filter>Source Files\stream app</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\stream-smb.c">
+      <Filter>Source Files\stream app</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ferret.h">
@@ -337,6 +358,12 @@
     </ClInclude>
     <ClInclude Include="..\..\src\filters.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\parse-address.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\stack-smells.h">
+      <Filter>Source Files\stack</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

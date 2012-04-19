@@ -170,13 +170,16 @@
     <ClCompile Include="..\..\src\dgram-ymsg.c" />
     <ClCompile Include="..\..\src\ferret.c" />
     <ClCompile Include="..\..\src\file-jpeg.c" />
+    <ClCompile Include="..\..\src\filter-addr.c" />
     <ClCompile Include="..\..\src\filter-proto.c" />
+    <ClCompile Include="..\..\src\filters.c" />
     <ClCompile Include="..\..\src\in-pcapfile.c" />
     <ClCompile Include="..\..\src\in-pcaplive.c" />
     <ClCompile Include="..\..\src\main.cpp" />
     <ClCompile Include="..\..\src\malloctrac.c" />
     <ClCompile Include="..\..\src\out-hamster.c" />
     <ClCompile Include="..\..\src\out-jotdown.c" />
+    <ClCompile Include="..\..\src\parse-address.c" />
     <ClCompile Include="..\..\src\pixie.c" />
     <ClCompile Include="..\..\src\report-stats.c" />
     <ClCompile Include="..\..\src\stack-arp.c" />
@@ -190,12 +193,14 @@
     <ClCompile Include="..\..\src\stack-ipv6.c" />
     <ClCompile Include="..\..\src\stack-layer1.c" />
     <ClCompile Include="..\..\src\stack-novellipx.c" />
+    <ClCompile Include="..\..\src\stack-smells.c" />
     <ClCompile Include="..\..\src\stack-tcp.c" />
     <ClCompile Include="..\..\src\stack-tcpchecksum.c" />
     <ClCompile Include="..\..\src\stack-tcpfrag.c" />
     <ClCompile Include="..\..\src\stack-udp.c" />
     <ClCompile Include="..\..\src\stack-wifi80211.c" />
     <ClCompile Include="..\..\src\stream-aimoscar.c" />
+    <ClCompile Include="..\..\src\stream-dcerpc.c" />
     <ClCompile Include="..\..\src\stream-http.c" />
     <ClCompile Include="..\..\src\stream-httpcookie.c" />
     <ClCompile Include="..\..\src\stream-httpform.c" />
@@ -203,7 +208,9 @@
     <ClCompile Include="..\..\src\stream-msnms.c" />
     <ClCompile Include="..\..\src\stream-pop3.c" />
     <ClCompile Include="..\..\src\stream-rdp.c" />
+    <ClCompile Include="..\..\src\stream-smb.c" />
     <ClCompile Include="..\..\src\stream-smtp.c" />
+    <ClCompile Include="..\..\src\stream-ssl.c" />
     <ClCompile Include="..\..\src\stream-ymsg.c" />
     <ClCompile Include="..\..\src\util-ahocorasick.c" />
     <ClCompile Include="..\..\src\util-base64.c" />
@@ -224,6 +231,7 @@
     <ClInclude Include="..\..\src\in-pcapfile.h" />
     <ClInclude Include="..\..\src\in-pcaplive.h" />
     <ClInclude Include="..\..\src\out-jotdown.h" />
+    <ClInclude Include="..\..\src\parse-address.h" />
     <ClInclude Include="..\..\src\pixie.h" />
     <ClInclude Include="..\..\src\platform.h" />
     <ClInclude Include="..\..\src\report.h" />
@@ -231,6 +239,7 @@
     <ClInclude Include="..\..\src\stack-extract.h" />
     <ClInclude Include="..\..\src\stack-netframe.h" />
     <ClInclude Include="..\..\src\stack-parser.h" />
+    <ClInclude Include="..\..\src\stack-smells.h" />
     <ClInclude Include="..\..\src\stack-tcp.h" />
     <ClInclude Include="..\..\src\stack-tcpchecksum.h" />
     <ClInclude Include="..\..\src\stack-tcpfrag.h" />

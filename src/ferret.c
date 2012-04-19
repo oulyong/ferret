@@ -216,6 +216,7 @@ ferret_set_parameter(struct Ferret *ferret, const char *name, const char *value,
 
 	if (MATCH("filter")) {
 		filter_set_parameter(ferret, name, value);
+		ferret_set_parameter(ferret, "report", "filter", depth);
 		return;
 	}
 
@@ -325,6 +326,8 @@ ferret_set_parameter(struct Ferret *ferret, const char *name, const char *value,
 		}
 		if (memcmp(value, "stat", 4)==0)
 			ferret->cfg.report_stats2 = 1;
+		else if (memcmp(value, "filter", 4)==0)
+			ferret->cfg.report_filter_stats = 1;
 		else
 			fprintf(stderr, "cfg: unknown: %s=%s\n", name, value);
 	} else if (MATCH("sniffer")) {
