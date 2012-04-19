@@ -54,11 +54,8 @@ parse_ip_address(const char *px, unsigned *offset, unsigned length, struct Parse
 unsigned
 parse_ip_selftest();
 
-enum {
-	ADDRESS_SOURCE		= 0,
-	ADDRESS_DESTINATION	= 1,
-};
-unsigned parse_next_address(struct RuleEngine *eng, const char *px, unsigned *offset, unsigned length, struct RuleToken *tok, struct Rule *rule, unsigned direction);
+
+int parse_ipv4_address(const char *px, unsigned *offset, unsigned length, struct ParsedIpAddress *ip);
 
 #ifdef __cplusplus
 }

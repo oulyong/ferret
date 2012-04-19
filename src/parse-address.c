@@ -238,7 +238,7 @@ format_address(	char *buf, size_t sizeof_buf,
  * If unsuccessful, it returns 'false', does not change 'offset', but
  * may or may not change some fields in 'ip'.
  ****************************************************************************/
-static int
+int
 parse_ipv4_address(const char *px, unsigned *offset, unsigned length, struct ParsedIpAddress *ip)
 {
     unsigned i = *offset;

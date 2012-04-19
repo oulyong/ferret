@@ -273,6 +273,9 @@
     <ClCompile Include="..\..\src\stream-smb.c">
       <Filter>Source Files\stream app</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\dgram-sip-sdp.c">
+      <Filter>Source Files\dgram app</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ferret.h">
@@ -364,6 +367,12 @@
     </ClInclude>
     <ClInclude Include="..\..\src\stack-smells.h">
       <Filter>Source Files\stack</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\dgram-sip.h">
+      <Filter>Source Files\dgram app</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\stack-listener.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

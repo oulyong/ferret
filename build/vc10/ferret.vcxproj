@@ -160,6 +160,7 @@
     <ClCompile Include="..\..\src\dgram-ldap.c" />
     <ClCompile Include="..\..\src\dgram-netbios.c" />
     <ClCompile Include="..\..\src\dgram-ppp.c" />
+    <ClCompile Include="..\..\src\dgram-sip-sdp.c" />
     <ClCompile Include="..\..\src\dgram-sip.c" />
     <ClCompile Include="..\..\src\dgram-smb.c" />
     <ClCompile Include="..\..\src\dgram-snmp.c" />
@@ -226,6 +227,7 @@
     <ClInclude Include="..\..\src\crypto-md5.h" />
     <ClInclude Include="..\..\src\crypto-wificrc.h" />
     <ClInclude Include="..\..\src\dgram-dns.h" />
+    <ClInclude Include="..\..\src\dgram-sip.h" />
     <ClInclude Include="..\..\src\ferret.h" />
     <ClInclude Include="..\..\src\filters.h" />
     <ClInclude Include="..\..\src\in-pcapfile.h" />
@@ -237,6 +239,7 @@
     <ClInclude Include="..\..\src\report.h" />
     <ClInclude Include="..\..\src\stack-asn1.h" />
     <ClInclude Include="..\..\src\stack-extract.h" />
+    <ClInclude Include="..\..\src\stack-listener.h" />
     <ClInclude Include="..\..\src\stack-netframe.h" />
     <ClInclude Include="..\..\src\stack-parser.h" />
     <ClInclude Include="..\..\src\stack-smells.h" />
