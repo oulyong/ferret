@@ -145,6 +145,7 @@ config_echo(struct Ferret *ferret, FILE *fp)
 	log_choice(fp, "hamster.mode", ferret->cfg.no_hamster, "sift\0none\0\0");
 	LOG_BOOL("statistics.print", ferret->cfg.statistics_print);
 	LOG_BOOL("report.stats", ferret->cfg.report_stats2);
+	LOG_NUM("report.hosts", ferret->cfg.report_hosts);
 	LOG_BOOL("config.quiet", ferret->cfg.quiet);
 
 	/* Print the MAC addresses that we are filtering out */
@@ -324,8 +325,16 @@ ferret_set_parameter(struct Ferret *ferret, const char *name, const char *value,
 			ferret->cfg.statistics_print = 0;
 			ferret->cfg.report_start = 1;
 		}
-		if (memcmp(value, "stat", 4)==0)
+		if (MATCH("host")) {
+			if (MATCH("addr")) {
+				report_hosts_set_parameter(ferret, "addr", value);
+
+			} else
+				ferret->cfg.report_hosts = strtoul(value,0,0);
+		} else if (memcmp(value, "stat", 4)==0)
 			ferret->cfg.report_stats2 = 1;
+		else if (memcmp(value, "host", 4)==0)
+			ferret->cfg.report_hosts = 20;
 		else if (memcmp(value, "filter", 4)==0)
 			ferret->cfg.report_filter_stats = 1;
 		else

@@ -291,6 +291,49 @@ jot_destroy_names(struct SeapName *name)
 }
 */
 
+/*ID-IP=[10.1.5.8]*/
+struct BinChild *
+bintree_lookup(struct BinChild *binchild, const char *data, unsigned data_length)
+{
+	struct BinTree *bt;
+	unsigned min, max, mid;
+
+	/* Must point to structure */
+	if (binchild == NULL)
+		return 0;
+
+	/* See if this is a new entry */
+	if (binchild->next == NULL) {
+		return 0;
+	}
+
+	bt = binchild->next;
+
+	min = 0;
+	max = bt->m_count;
+
+	while (min<max) {
+		int c;
+		unsigned len;
+		
+		mid = (min+max)/2;
+
+		len = data_length;
+		if (len > bt->m_list[mid].m_data_length)
+			len = bt->m_list[mid].m_data_length;
+
+		c = memcmp(bt->m_list[mid].m_data, data, len);
+		if (c == 0 && data_length == bt->m_list[mid].m_data_length)
+			return &bt->m_list[mid];
+
+		if (c > 0 || (c == 0 && len < data_length)) {
+			max = mid;
+		} else
+			min = mid+1;
+	}
+
+	return 0;
+}
 
 
 struct BinChild *
@@ -305,7 +348,7 @@ bintree_insert(struct BinChild *binchild, const char *data, unsigned data_length
 
 	/* See if this is a new entry */
 	if (binchild->next == NULL) {
-		binchild->next = malloc(sizeof(struct BinTree));
+		binchild->next = (struct BinTree *)malloc(sizeof(struct BinTree));
 		bt = binchild->next;
 		bt->m_count = 1;
 		bt->m_max = 1;
@@ -476,6 +519,46 @@ void hamster_sift(unsigned record_count, struct BinChild **bc_vector)
 		}
 	}
 
+}
+
+void print_ip_id(struct Ferret *ferret, unsigned ip)
+{
+	char buf[16+4];
+	unsigned buflen;
+	struct BinChild *bc;
+	struct BinTree *bt;
+	unsigned is_new_entry = 0;
+	unsigned i;
+
+	/*
+	 * Format a pseudo entry
+	 */
+	sprintf_s(buf, sizeof(buf), "[%d.%d.%d.%d]",
+		(ip>>24)&0xFF,
+		(ip>>16)&0xFF,
+		(ip>> 8)&0xFF,
+		(ip>> 0)&0xFF
+		);
+	buflen = (unsigned)strlen(buf);
+
+	bc = &ferret->jot->records;
+
+	bc = bintree_insert(bc, "ID-IP", 5, &is_new_entry);
+	bc = bintree_insert(bc, buf, buflen, &is_new_entry);
+
+	bt = bc->next;
+	for (i=0; bt && i<bt->m_count; i++) {
+		struct BinChild *bc2 = &bt->m_list[i];
+		struct BinTree *bt2 = bc2->next;
+		unsigned j;
+
+		for (j=0; j<bt2->m_count; j++) {
+			struct BinChild *bc3 = &bt2->m_list[j];
+			
+			printf("%.*s=%.*s ", bc2->m_data_length, bc2->m_data,
+								bc3->m_data_length, bc3->m_data);
+		}
+	}
 }
 
 /**

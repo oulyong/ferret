@@ -7,6 +7,7 @@
 #include "stack-extract.h"
 #include "util-housekeeping.h"
 #include "crypto-wificrc.h"
+#include "report.h"
 
 #include <ctype.h>
 #include <string.h>
@@ -163,7 +164,16 @@ void process_frame(struct Ferret *ferret, struct NetFrame *frame, const unsigned
 		break;
 	}
 
+	/*
+	 *
+	 * Reporting
+	 *
+	 */
 	if (frame->is_data) {
+
+		/*
+		 * PROTOCOL reporting
+		 */
 		ferret->stats2.layer3_pkts[frame->layer3_protocol]++;
 		ferret->stats2.layer3_bytes[frame->layer3_protocol] += frame->original_length;
 		if (frame->layer3_protocol == LAYER3_IP || frame->layer3_protocol == LAYER3_IPV6) {
@@ -173,9 +183,27 @@ void process_frame(struct Ferret *ferret, struct NetFrame *frame, const unsigned
 			switch (frame->layer4_protocol) {
 			case LAYER4_TCP:
 			case LAYER4_UDP:
+				if (frame->layer7_protocol == 0) {
+					if (frame->layer4_protocol == LAYER4_TCP)
+						frame->layer7_protocol = LAYER7_UNKNOWN_TCP;
+					else if (frame->layer4_protocol == LAYER4_UDP)
+						frame->layer7_protocol = LAYER7_UNKNOWN_UDP;
+
+				}
+
 				ferret->stats2.layer7_pkts[frame->layer7_protocol]++;
 				ferret->stats2.layer7_bytes[frame->layer7_protocol] += frame->original_length;
 				break;
+			}
+		}
+
+		/*
+		 * HOST reporting
+		 */
+		if (ferret->cfg.report_hosts) {
+			if (frame->layer3_protocol == LAYER3_IP) {
+				record_host_transmit(ferret, frame->src_ipv4, frame->original_length);
+				record_host_receive(ferret, frame->dst_ipv4, frame->original_length);
 			}
 		}
 	}

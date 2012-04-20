@@ -174,6 +174,10 @@ value_HOST(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *
 				JOT_PRINTT("Host", req->host),
 				JOT_PRINT("URL", req->url, req->url_length),
 				0);
+		JOTDOWN(sess->eng->ferret,
+				JOT_DST("ID-IP",frame),
+				JOT_PRINTT("DNS", req->host),
+				0);
 
 		if (!sess->eng->ferret->cfg.no_hamster)
 		hamster_url(*(unsigned*)sess->ip_src,

@@ -96,7 +96,7 @@ void filter_set_parameter(struct Ferret *ferret, const char *name, const char *v
 
 	if (MATCH("proto")) {
 		flt_proto_set_parameter(ferret->sniff_filters, name, value);
-	} else if (MATCH("addr")) {
+	} else if (MATCH("addr") || MATCH("host")) {
 		flt_addr_set_parameter(ferret->sniff_filters, name, value);
 	} else {
 		fprintf(stderr, "cfg: unknown filter spec: %s=%s\n", name, value);

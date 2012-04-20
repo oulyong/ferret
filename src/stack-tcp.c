@@ -683,10 +683,12 @@ void process_tcp(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
 
 	if (length == 0) {
 		FRAMERR(frame, "tcp: frame empty\n");
+		frame->layer4_protocol = LAYER4_TCP_CORRUPT;
 		return;
 	}
 	if (length < 20) {
 		FRAMERR(frame, "tcp: frame too short\n");
+		frame->layer4_protocol = LAYER4_TCP_CORRUPT;
 		return;
 	}
 
@@ -728,14 +730,17 @@ void process_tcp(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
 	if (tcp.header_length < 20) {
 		/* Regress: defcon2008\dump027.pcap(39901) */
 		//FRAMERR(frame, "tcp: header too short, expected length=20, found length=%d\n", tcp.header_length);
+		frame->layer4_protocol = LAYER4_TCP_CORRUPT;
 		return;
 	}
 	if (tcp.header_length > length) {
 		//FRAMERR(frame, "tcp: header too short, expected length=%d, found length=%d\n", tcp.header_length, length);
+		frame->layer4_protocol = LAYER4_TCP_CORRUPT;
 		return;
 	}
 	if ((tcp.flags & 0x20) && tcp.urgent > 0) {
 		FRAMERR(frame, "tcp: found %d bytes of urgent data\n", tcp.urgent);
+		frame->layer4_protocol = LAYER4_TCP_CORRUPT;
 		return;
 	}
 
@@ -743,6 +748,7 @@ void process_tcp(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
 	if (!validate_tcp_checksum(px, length, frame->src_ipv4, frame->dst_ipv4)) {
 		/* Regress: defcon2008-msnmsgr.pcap(24066) */
 		ferret->statistics.errs_tcp_checksum++;		
+		frame->layer4_protocol = LAYER4_TCP_XSUMERR;
 		return;
 	}
 
@@ -866,6 +872,20 @@ void process_tcp(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
 		break;
 	default:
 		FRAMERR(frame, "tcp: unexpected combo of flags: 0x%03x\n", tcp.flags);
+	}
+
+	/*
+	 * KLUDGE:
+	 */
+	if (frame->layer7_protocol == 0) {
+		if (frame->dst_port == 443 || frame->src_port == 443)
+			frame->layer7_protocol = LAYER7_SSL;
+		if (frame->dst_port == 3260 && frame->src_port > 1024
+		 || frame->src_port == 3260 && frame->dst_port > 1024)
+			frame->layer7_protocol = LAYER7_ISCSI;
+		if (frame->dst_port == 21 && frame->src_port > 1024
+		 || frame->src_port == 21 && frame->dst_port > 1024)
+			frame->layer7_protocol = LAYER7_FTP;
 	}
 }
 

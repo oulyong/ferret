@@ -32,6 +32,8 @@ enum {
 	LAYER4_ICMP,
 	LAYER4_IGMP,
 	LAYER4_GRE,
+	LAYER4_TCP_CORRUPT,
+	LAYER4_TCP_XSUMERR,
 
 	LAYER4_TOTAL
 };
@@ -39,6 +41,9 @@ enum {
 
 enum LAYER7_PROTOCOL {
 	LAYER7_UNKNOWN,
+	
+	LAYER7_UNKNOWN_TCP,
+	LAYER7_UNKNOWN_UDP,
 	
 	LAYER7_HTTP,
 	LAYER7_MSNMSGR,
@@ -50,6 +55,8 @@ enum LAYER7_PROTOCOL {
 	LAYER7_SSL,
 	LAYER7_DCERPC,
 	LAYER7_SMB,
+	LAYER7_FTP,
+	LAYER7_ISCSI,
 
 	LAYER7_BITTORRENT_DHT,
 	LAYER7_CALLWAVE,
@@ -73,6 +80,7 @@ enum LAYER7_PROTOCOL {
 	LAYER7_YMSG,
 	LAYER7_LDAP,
 	LAYER7_RTP,
+	LAYER7_HSRP,
 
 	LAYER7_TOTAL
 };
@@ -81,7 +89,7 @@ struct TCPRECORD;
 struct NetFrame
 {
 	unsigned ipver;
-	unsigned is_data;
+	unsigned is_data; /* On WiFi, if we have data, and true everywhere else */
 	unsigned layer2_protocol;
 	unsigned layer3_protocol;
 	unsigned layer4_protocol;

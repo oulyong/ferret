@@ -184,6 +184,7 @@
     <ClCompile Include="..\..\src\out-jotdown.c" />
     <ClCompile Include="..\..\src\parse-address.c" />
     <ClCompile Include="..\..\src\pixie.c" />
+    <ClCompile Include="..\..\src\report-hosts.c" />
     <ClCompile Include="..\..\src\report-stats.c" />
     <ClCompile Include="..\..\src\stack-arp.c" />
     <ClCompile Include="..\..\src\stack-atalkddp.c" />
@@ -205,6 +206,7 @@
     <ClCompile Include="..\..\src\stack-wifi80211.c" />
     <ClCompile Include="..\..\src\stream-aimoscar.c" />
     <ClCompile Include="..\..\src\stream-dcerpc.c" />
+    <ClCompile Include="..\..\src\stream-ftp.c" />
     <ClCompile Include="..\..\src\stream-http.c" />
     <ClCompile Include="..\..\src\stream-httpcookie.c" />
     <ClCompile Include="..\..\src\stream-httpform.c" />

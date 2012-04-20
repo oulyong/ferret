@@ -1112,6 +1112,9 @@ int FERRET_MAIN(int argc, char **argv)
 		report_stats1(ferret);
 	else if (ferret->cfg.report_stats2)
 		report_stats2(ferret);
+	else if (ferret->cfg.report_hosts)
+		report_hosts_topn(ferret, ferret->cfg.report_hosts);
+
 	/*
 	 * Create an artificial timeout frame
 	 */

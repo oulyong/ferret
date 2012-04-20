@@ -71,6 +71,38 @@ smellslike_udp_tivoconnect(struct Ferret *ferret, struct NetFrame *frame, const 
     return false;
 }
 
+int is_kludge_rtp_ports(struct NetFrame *frame)
+{
+	if (frame->src_port == 8000
+		|| frame->src_port == 8001
+		|| frame->src_port == 8002
+		|| frame->src_port == 8003
+		|| frame->src_port == 8700
+		|| frame->src_port == 8701
+		)
+		return 1;
+	if (frame->dst_port == 8000
+		|| frame->dst_port == 8001
+		|| frame->dst_port == 8002
+		|| frame->dst_port == 8003
+		|| frame->dst_port == 8700
+		|| frame->dst_port == 8701
+		)
+		return 1;
+	return 0;
+}
+
+int is_kludge_rtp_addrs(struct NetFrame *frame)
+{
+	if ((frame->src_ipv4>>8) == ((10<<16)+(1<<8)+5)
+		&& (frame->dst_ipv4>>24) == 74)
+		return 1;
+	if ((frame->dst_ipv4>>8) == ((10<<16)+(1<<8)+5)
+		&& (frame->src_ipv4>>24) == 74)
+		return 1;
+	return 0;
+}
+
 static unsigned
 smellslike_udp_bootp(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length, unsigned direction)
 {
@@ -394,6 +426,32 @@ void process_udp(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
 			process_rtp_rtcp(ferret, frame, px+offset, length-offset);
 			break;
 		}
+	}
+
+	/*
+	 * Kludge
+	 */
+	if (frame->layer7_protocol == 0) {
+		if (is_kludge_rtp_addrs(frame)) {
+			if (is_kludge_rtp_ports(frame))
+				frame->layer7_protocol = LAYER7_RTP;
+		}
+
+		if (frame->src_port == 5060 || frame->dst_port == 5060) {
+			if (length-offset == 4 && memcmp(px+offset, "\r\n\r\n", 4) == 0)
+				frame->layer7_protocol = LAYER7_SIP;
+			else
+				printf(".");
+		}
+
+		if (frame->dst_port == 1985 && frame->dst_ipv4 == (224<<24|2))
+			frame->layer7_protocol = LAYER7_HSRP;
+
+		if (frame->src_port == 3205 && frame->dst_ipv4 == 0xFFFFFFFF)
+			frame->layer7_protocol = LAYER7_ISCSI;
+
+		if (frame->src_port == 1900 && frame->dst_port == 1900)
+			frame->layer7_protocol = LAYER7_SSDP;
 	}
 }
 

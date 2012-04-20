@@ -34,9 +34,6 @@
     <Filter Include="Source Files\file">
       <UniqueIdentifier>{d277c7e9-1570-4146-b957-b54711485d23}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\report">
-      <UniqueIdentifier>{461099cb-a8ed-4c3b-9627-e1cf88936f26}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\ferret.c">
@@ -246,9 +243,6 @@
     <ClCompile Include="..\..\src\pixie.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\report-stats.c">
-      <Filter>Source Files\report</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\filter-proto.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -284,6 +278,15 @@
     </ClCompile>
     <ClCompile Include="..\..\src\dgram-rtp-rtcp.c">
       <Filter>Source Files\dgram app</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\stream-ftp.c">
+      <Filter>Source Files\stream app</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\report-hosts.c">
+      <Filter>Source Files\i/o</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\report-stats.c">
+      <Filter>Source Files\i/o</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -365,9 +368,6 @@
     <ClInclude Include="..\..\src\pixie.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\report.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\filters.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -382,6 +382,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\stack-listener.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\report.h">
+      <Filter>Source Files\i/o</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

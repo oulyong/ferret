@@ -220,7 +220,8 @@ again:
 		i++;
 
 	if (stricmp(command, "mail")==0 || stricmp(command, "rcpt")==0) {
-		i += 4;
+		if (i >= length)
+			return;
 		goto again;
 	}
 
@@ -247,24 +248,24 @@ again:
 		0);
 
 	/* test parms */
-	if (stricmp(command, "MAILFROM:")==0) {
+	if (stricmp(command, "MAILFROM")==0) {
 		strip_address(&parm, &parm_length);
 
 		if (sess)
 			smtp_copy(sess->layer7.smtpreq.from, parm, parm_length);
 
 		JOTDOWN(ferret,
-			JOT_SRC("ID-IP", frame),
+			JOT_SRC("IP", frame),
 			JOT_PRINT("e-mail", parm, parm_length),
 			0);
 	}
-	if (stricmp(command, "RCPTTO:")==0) {
+	if (stricmp(command, "RCPTTO")==0) {
 		strip_address(&parm, &parm_length);
 
 		if (sess)
 			smtp_copy(sess->layer7.smtpreq.to, parm, parm_length);
 		JOTDOWN(ferret,
-			JOT_SRC("ID-IP", frame),
+			JOT_SRC("IP", frame),
 			JOT_PRINT("friend",			   parm, parm_length),
 			0);
 	}

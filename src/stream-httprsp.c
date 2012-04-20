@@ -62,12 +62,12 @@ value_SET_COOKIE(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned 
 		 * Get the 'path' variable.
 		 */
 		for (i=0; i<buf_length; i++) {
-			while (i<buf_length && isspace(buf[i]))
+			while (i<buf_length && isspace(buf[i]&0xFF))
 				i++;
 
 			if (buf_length - i > 4 && strnicmp(buf+i, "path", 4) == 0) {
 				i += 4;
-				while (i<buf_length && isspace(buf[i]))
+				while (i<buf_length && isspace(buf[i]&0xFF))
 					i++;
 				if (i+1 >= buf_length || buf[i] != '=')
 					continue;
@@ -87,12 +87,12 @@ value_SET_COOKIE(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned 
 		 * Get the 'domain' variable
 		 */
 		for (i=0; i<buf_length; i++) {
-			while (i<buf_length && isspace(buf[i]))
+			while (i<buf_length && isspace(buf[i]&0xFF))
 				i++;
 
 			if (buf_length - i > 4 && strnicmp(buf+i, "domain", 6) == 0) {
 				i += 6;
-				while (i<buf_length && isspace(buf[i]))
+				while (i<buf_length && isspace(buf[i]&0xFF))
 					i++;
 				if (i+1 >= buf_length || buf[i] != '=')
 					continue;
@@ -246,7 +246,7 @@ void value_CONTENT_TYPE(struct TCPRECORD *sess, struct NetFrame *frame, const un
 		}
 		break;
 	case STATE_SPACE_AFTER_SEMICOLON:
-		while (offset<length && isspace(px[offset]) && px[offset] != '\n')
+		while (offset<length && isspace(px[offset]&0xFF) && px[offset] != '\n')
 			offset++;
 		if (offset < length)
 			req->value_state = STATE_OPTIONS;
@@ -371,18 +371,18 @@ Server: lighttpd/1.4.11.1*/
 		/* We are in the state before the HTTP header. This may be the 
 		 * first state of the connection, or the state after the previous
 		 * HTTP request */
-		while (offset<length && isspace(px[offset]))
+		while (offset<length && isspace(px[offset]&0xFF))
 			offset++;
 		if (offset<length)
 			parse->state = HTTP_VERSION;
 		break;
 	case HTTP_VERSION:
 		copy_until_space(req->version, sizeof(req->version), &req->version_length, px, length, &offset);
-		if (offset<length && isspace(px[offset]))
+		if (offset<length && isspace(px[offset]&0xFF))
 			parse->state = HTTP_VERSION_AFTER;
 		break;
 	case HTTP_VERSION_AFTER:
-		while (offset<length && isspace(px[offset]) && px[offset] != '\n')
+		while (offset<length && isspace(px[offset]&0xFF) && px[offset] != '\n')
 			offset++;
 		if (offset<length)
 			parse->state = HTTP_RETURNCODE;
@@ -393,7 +393,7 @@ Server: lighttpd/1.4.11.1*/
 			offset++;
 		}
 		if (offset<length) {
-			if (isspace(px[offset]))
+			if (isspace(px[offset]&0xFF))
 				parse->state = HTTP_RETURNCODE_AFTER;
 			else
 				parse->state = HTTP_RETURNCODE_NONDIGIT;
@@ -449,7 +449,7 @@ Server: lighttpd/1.4.11.1*/
 			parse->state = HTTP_SKIP_TO_EOL;
 		break;
 	case HTTP_NAME_AFTER:
-		while (offset<length && isspace(px[offset]) && px[offset] != '\n')
+		while (offset<length && isspace(px[offset]&0xFF) && px[offset] != '\n')
 			offset++;
 		if (offset<length) {
 			parse->state = HTTP_VALUE;

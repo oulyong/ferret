@@ -455,8 +455,8 @@ dns_parse_resource_record(struct Ferret *ferret, struct NetFrame *frame,
 			FRAMERR(frame, "dns: data not 4-bytes long, was %d-bytes instead (class=%d, type=%d, name=%s)\n", rec->rdata_length, rec->clss, rec->type, name);
 
 		JOTDOWN(ferret,
-			JOT_PRINT("ID-DNS", name,	name_length),
-			JOT_IPv4("address",	ip_address),
+			JOT_IPv4("ID-IP",	ip_address),
+			JOT_PRINT("DNS", name,	name_length),
 			0);
 		break;
 	case TYPECLASS(2,1): /* type=NS, class=INTERNET */
@@ -484,8 +484,8 @@ dns_parse_resource_record(struct Ferret *ferret, struct NetFrame *frame,
 
 		if (ip_address != 0) {
 			JOTDOWN(ferret,
-				JOT_PRINT("ID-DNS", name,	name_length),
-				JOT_IPv4("alias",ip_address),
+				JOT_IPv4("ID-IP",ip_address),
+				JOT_PRINT("DNS", name,	name_length),
 				0);
 		}
 		JOTDOWN(ferret,
@@ -589,8 +589,8 @@ dns_parse_resource_record(struct Ferret *ferret, struct NetFrame *frame,
 			name2_length = dns_extract_name(frame, px, length, offset, name2, sizeof(name2));
 
 			JOTDOWN(ferret,
-				JOT_PRINT("ID-DNS", name2, name2_length),
 				JOT_IPv4("ID-IP", ipv4),
+				JOT_PRINT("DNS", name2, name2_length),
 				JOT_SRC("dnssrv", frame),
 				0);
 		} else
@@ -683,6 +683,10 @@ dns_parse_resource_record(struct Ferret *ferret, struct NetFrame *frame,
 					JOT_PRINT("Server", name2,	name2_length),
 					JOT_NUM("Port", port),
 					JOT_IPv4("IPv4",ip_address),
+					0);
+				JOTDOWN(ferret,
+					JOT_IPv4("ID-IP",ip_address),
+					JOT_PRINT("DNS", name2,	name2_length),
 					0);
 			} else
 				JOTDOWN(ferret,

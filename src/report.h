@@ -7,6 +7,12 @@ extern "C" {
 void report_stats1(struct Ferret *ferret);
 void report_stats2(struct Ferret *ferret);
 
+void record_host_transmit(struct Ferret *ferret, unsigned ipv4, unsigned frame_size);
+void record_host_receive(struct Ferret *ferret, unsigned ipv4, unsigned frame_size);
+
+void report_hosts_topn(struct Ferret *ferret, unsigned report_count);
+
+void report_hosts_set_parameter(struct Ferret *ferret, const char *name, const char *value);
 
 #ifdef __cplusplus
 }
