@@ -5,6 +5,7 @@ enum LISTENER_TYPE {
 	LISTENER_UNKNOWN,
 	LISTENER_UDP_SIP,
 	LISTENER_UDP_RTPAVP,
+	LISTENER_UDP_RTCP,
 	LISTENER_TCP_FTPDATA,
 };
 
@@ -23,9 +24,20 @@ enum LISTENER_TYPE {
  * other ports. We must therefore parse SIP packets in order to find
  * the ports that RTP runs over.
  */
-void listener_register(
+void listener_register_udp(
 	struct Ferret *ferret, 
 	enum LISTENER_TYPE application_protocol,
+	unsigned ip,
+	unsigned port,
+	unsigned time_secs
+	);
+
+/**
+ * Called while processing UDP packets to lookup a dynamic port
+ */
+unsigned
+listener_lookup_udp(
+	struct Ferret *ferret, 
 	unsigned ip,
 	unsigned port
 	);

@@ -193,6 +193,7 @@ struct NameVal layer7names[] = {
 	{LAYER7_UPNP, "UPNP"},
 	{LAYER7_YMSG, "YMSG"},
 	{LAYER7_LDAP, "LDAP"},
+	{LAYER7_RTP, "RTP"},
 	{0,0}
 };
 static int lookup(const struct NameVal *nameval, const char *name)
@@ -284,6 +285,7 @@ report_stats2(struct Ferret *ferret)
 	"UPNP",
 	"YMSG",
 	"LDAP",
+	"RTP",
 
 	"TOTAL"
 	};

@@ -79,7 +79,7 @@ field_equals_nocase(const char *name, const struct Field *field)
 	unsigned i;
 
 	for (i=0; i<field->length && name[i]; i++)
-		if (tolower(name[i]&0xFF) != (field->px[i]))
+		if (tolower(name[i]&0xFF) != tolower(field->px[i]))
 			return 0;
 	if (i != field->length)
 		return 0;

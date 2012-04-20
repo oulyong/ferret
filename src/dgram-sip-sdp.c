@@ -2,6 +2,8 @@
 #include "stack-netframe.h"
 #include "dgram-sip.h"
 #include "parse-address.h"
+#include "stack-listener.h"
+
 #include <ctype.h>
 
 
@@ -36,8 +38,10 @@ sdp_next_header(const char name, const unsigned char *px, unsigned length, struc
 			continue;
 		}
 
-		if (count++ < index)
+		if (count++ < index) {
+			offset = next_offset;
 			continue;
+		}
 
 		/*
 		 * Grab the value
@@ -119,22 +123,34 @@ field_next_nonnumber(const struct Field *field, unsigned *offset, struct Field *
 }
 
 void
-register_rtpavp(struct Ferret *ferret, unsigned connection_ip_address, const struct Field *port_field)
+register_rtpavp(struct Ferret *ferret, unsigned connection_ip_address, const struct Field *port_field, unsigned time_secs)
 {
 	struct Field slash[1];
 	uint64_t port_number;
 	unsigned offset = 0;
 
 	port_number = field_next_number(port_field, &offset);
-	
+	if (port_number > 65535)
+		return;
+	listener_register_udp(ferret, LISTENER_UDP_RTPAVP, connection_ip_address, (unsigned)port_number, time_secs);
+	listener_register_udp(ferret, LISTENER_UDP_RTCP, connection_ip_address, (unsigned)port_number+1, time_secs);
 
+	/* See if a range was specified */
 	if (field_next_nonnumber(port_field, &offset, slash) && field_equals_nocase("/",slash)) {
 		uint64_t ttl = field_next_number(port_field, &offset);
 		if (field_next_nonnumber(port_field, &offset, slash) && field_equals_nocase("/",slash)) {
+			if (field_is_number(port_field, offset)) {
+				uint64_t range = field_next_number(port_field, &offset);
+				unsigned i;
+
+				for (i=1 /*already did first one */; i<range; i++) {
+					port_number += 2;
+					listener_register_udp(ferret, LISTENER_UDP_RTPAVP, connection_ip_address, (unsigned)port_number, time_secs);
+					listener_register_udp(ferret, LISTENER_UDP_RTCP, connection_ip_address, (unsigned)port_number+1, time_secs);
+				}
+			}
 		}
 	}
-
-
 }
 
 void
@@ -217,7 +233,7 @@ a=ptime:20
 		 */
 		field_next(field, &offset, protocol_type);
 		if (field_equals_nocase("RTP/AVP", protocol_type)) {
-			register_rtpavp(ferret, connection_ip_address, port_field);
+			register_rtpavp(ferret, connection_ip_address, port_field, frame->time_secs);
 		}
 
 		if (protocol_type->length) {

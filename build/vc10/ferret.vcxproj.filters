@@ -276,6 +276,15 @@
     <ClCompile Include="..\..\src\dgram-sip-sdp.c">
       <Filter>Source Files\dgram app</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\stack-listener.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\dgram-rtp-avp.c">
+      <Filter>Source Files\dgram app</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\dgram-rtp-rtcp.c">
+      <Filter>Source Files\dgram app</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ferret.h">

@@ -160,6 +160,8 @@
     <ClCompile Include="..\..\src\dgram-ldap.c" />
     <ClCompile Include="..\..\src\dgram-netbios.c" />
     <ClCompile Include="..\..\src\dgram-ppp.c" />
+    <ClCompile Include="..\..\src\dgram-rtp-avp.c" />
+    <ClCompile Include="..\..\src\dgram-rtp-rtcp.c" />
     <ClCompile Include="..\..\src\dgram-sip-sdp.c" />
     <ClCompile Include="..\..\src\dgram-sip.c" />
     <ClCompile Include="..\..\src\dgram-smb.c" />
@@ -193,6 +195,7 @@
     <ClCompile Include="..\..\src\stack-ip.c" />
     <ClCompile Include="..\..\src\stack-ipv6.c" />
     <ClCompile Include="..\..\src\stack-layer1.c" />
+    <ClCompile Include="..\..\src\stack-listener.c" />
     <ClCompile Include="..\..\src\stack-novellipx.c" />
     <ClCompile Include="..\..\src\stack-smells.c" />
     <ClCompile Include="..\..\src\stack-tcp.c" />

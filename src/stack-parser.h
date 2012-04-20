@@ -55,6 +55,9 @@ void process_bittorrent_udp(struct Ferret *ferret, struct NetFrame *frame, const
 void process_ldap(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
 void parse_tivo_broadcast(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
 
+void process_rtp_avp(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void process_rtp_rtcp(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
+
 void parse_dgram_sip_request(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
 void parse_dgram_sip_response(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
 

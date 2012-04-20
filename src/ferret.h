@@ -25,6 +25,7 @@ extern "C" {
 struct Ferret;
 struct NetFrame;
 struct TCPRECORD;
+struct Listener;
 
 struct FerretEngine;
 typedef void (*FERRET_PARSER)(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
@@ -97,7 +98,7 @@ struct FerretEngine
 
 	time_t last_activity;
 
-
+	
 };
 
 struct Snarfer {
@@ -314,6 +315,8 @@ struct Ferret
 	struct Stats2 stats2;
 
 	struct SniffFilter *sniff_filters;
+
+	struct Listener *listener;
 };
 
 struct Ferret *ferret_create();

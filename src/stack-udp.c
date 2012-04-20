@@ -6,6 +6,7 @@
 #include "ferret.h"
 #include "stack-extract.h"
 #include "util-mystring.h"
+#include "stack-listener.h"
 #include <string.h>
 
 #ifndef true
@@ -376,6 +377,23 @@ void process_udp(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
 		}
 	}
 
+	if (frame->ipver == 0 || frame->ipver == 4) {
+		unsigned proto;
 
+		proto = listener_lookup_udp(ferret, frame->dst_ipv4, frame->dst_port);
+		if (proto == 0)
+			listener_lookup_udp(ferret, frame->src_ipv4, frame->src_port);
+		
+		switch (proto) {
+		case 0:
+			break;
+		case LISTENER_UDP_RTPAVP:
+			process_rtp_avp(ferret, frame, px+offset, length-offset);
+			break;
+		case LISTENER_UDP_RTCP:
+			process_rtp_rtcp(ferret, frame, px+offset, length-offset);
+			break;
+		}
+	}
 }
 
