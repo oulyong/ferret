@@ -565,7 +565,7 @@ void print_ip_id(struct Ferret *ferret, unsigned ip)
  * This is the primay function that records a piece of 
  * information found by Ferret.
  */
-void vJOTDOWN(struct Ferret *ferret, va_list marker)
+static void vJOTDOWN(struct Ferret *ferret, va_list marker)
 {
 	enum {MAX_RECORDS=100};
 	int record_count;
@@ -590,7 +590,7 @@ void vJOTDOWN(struct Ferret *ferret, va_list marker)
 		size_t vallen=0;
 		
 		name = va_arg(marker, char *);
-		if (name == 0 /*kludge*/ /*|| ((unsigned)(size_t)name) == 0*/)
+		if (name == 0 /*kludge*/ || ((unsigned)(size_t)name) == 0)
 			break;
 
 		fmt = va_arg(marker, int);

@@ -3,11 +3,11 @@ SRCDIR = src
 DSTDIR = bin
 TMPDIR = tmp
 
-LIBS = -ldl -lSegFault
+LIBS = -ldl -lpthread -lSegFault
 INCLUDES= 
 
 CC = gcc
-CFLAGS = -g $(INCLUDES) -Wall
+CFLAGS = -g $(INCLUDES) -Wall -rdynamic
 
 .SUFFIXES: .c .cpp
 

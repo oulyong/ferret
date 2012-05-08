@@ -539,6 +539,7 @@ dns_parse_resource_record(struct Ferret *ferret, struct NetFrame *frame,
 		bonjour_parse_resource_record(ferret, frame, px, length, rec, dns);
 		break;
 	case TYPECLASS(12,1): /*type=PTR(pointer reverse lookup), class=INTERNET */
+		return;
 		if (!is_valid_opcode(dns->opcode, 0x10, -1)) {
 			FRAMERR(frame, "%s: unknown opcode=%d\n", "DNS", dns->opcode);
 			return;
