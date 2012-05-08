@@ -1,5 +1,6 @@
 #ifndef STACK_LISTENER_H
 #define STACK_LISTENER_H
+struct Ferret;
 
 enum LISTENER_TYPE {
 	LISTENER_UNKNOWN,

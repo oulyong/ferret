@@ -4,7 +4,7 @@ DSTDIR = bin
 TMPDIR = tmp
 
 LIBS = -ldl -lSegFault
-INCLUDES = -I. -I$(SRCDIR) -I$(SRCDIR)/include
+INCLUDES= 
 
 CC = gcc
 CFLAGS = -g $(INCLUDES) -Wall

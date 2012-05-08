@@ -22,6 +22,8 @@ void parse_ssl_request(struct TCPRECORD *sess, struct NetFrame *frame, const uns
 	struct PARSE *parse = &sess->parse;
 	struct HTTPREQUEST *req = &sess->layer7.httpreq;
 
+	UNUSEDPARM(req); UNUSEDPARM(parse);
+
 	sess->layer7_proto = LAYER7_SSL;
 	frame->layer7_protocol = LAYER7_SSL;
 }
@@ -30,6 +32,8 @@ void parse_ssl_response(struct TCPRECORD *sess, struct NetFrame *frame, const un
 {
 	struct PARSE *parse = &sess->parse;
 	struct HTTPREQUEST *req = &sess->layer7.httpreq;
+
+	UNUSEDPARM(req); UNUSEDPARM(parse);
 
 	sess->layer7_proto = LAYER7_SSL;
 	frame->layer7_protocol = LAYER7_SSL;

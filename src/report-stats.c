@@ -1,6 +1,8 @@
 #include "ferret.h"
 #include "report.h"
 #include "stack-netframe.h"
+#include <string.h>
+#include <stdio.h>
 
 static unsigned count_digits(uint64_t n)
 {
@@ -50,7 +52,7 @@ print_stats2(const char *prefix, const char *str1, uint64_t stat1, const char *s
 {
 	size_t i;
 	unsigned digits;
-    FILE *fp = stderr;
+    FILE *fp = stdout;
 
 	/* first number */
 	digits = count_digits(stat1);
@@ -69,12 +71,12 @@ print_stats2(const char *prefix, const char *str1, uint64_t stat1, const char *s
 	    //fprintf(fp, "%s", prefix);
 	    //for (i=strlen(prefix); i<16; i++)
 		//    fprintf(fp, ".");
-	    for (i=digits; i<11; i++)
+	    for (i=digits; i<12; i++)
 		    fprintf(fp, ".");
 	    fprintf(fp, "%llu-%s", stat2, str2);
     }
 
-	fprintf(stderr, "\n");
+	fprintf(fp, "\n");
 }
 
 void
@@ -175,6 +177,7 @@ struct NameVal layer7names[] = {
 	{LAYER7_DCERPC,		"DCERPC"},
 	{LAYER7_SMB,		"SMB"},
 	{LAYER7_FTP,		"FTP"},
+	{LAYER7_IMAP,		"IMAP"},
 	{LAYER7_ISCSI,		"iSCSI"},
 
 
@@ -272,7 +275,21 @@ report_stats2(struct Ferret *ferret)
 {
 	unsigned i;
 
+	{
+		struct tm *tm_first;
+		struct tm *tm_last;
+		char sz_first[64], sz_last[64];
+		int diff = (int)(ferret->now-ferret->first);
 
+		tm_first = localtime(&ferret->first);
+		strftime(sz_first, sizeof(sz_first), "%Y-%m-%d %H:%M:%S", tm_first);
+		
+		tm_last = localtime(&ferret->now);
+		strftime(sz_last, sizeof(sz_last), "%Y-%m-%d %H:%M:%S", tm_last);
+
+		fprintf(stdout, "Capture started at %s and ended at %s (%d seconds)\n",
+				sz_first, sz_last, diff);
+	}
 	printf("\n--- Network Layer ----\n");
 	for (i=0; i<LAYER3_TOTAL; i++) {
 		const char *name;

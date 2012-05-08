@@ -1,5 +1,6 @@
 #ifndef STACK_SMELLS_H
 #define STACK_SMELLS_H
+struct NetFrame;
 
 struct SmellsDCERPC
 {

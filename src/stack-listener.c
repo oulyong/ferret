@@ -1,5 +1,9 @@
 #include "stack-listener.h"
 #include "ferret.h"
+#include <string.h>
+#include <stdio.h>
+#include <stdint.h>
+
 
 #define TABLE_SIZE 0x4000
 

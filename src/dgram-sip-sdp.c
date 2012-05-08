@@ -138,6 +138,7 @@ register_rtpavp(struct Ferret *ferret, unsigned connection_ip_address, const str
 	/* See if a range was specified */
 	if (field_next_nonnumber(port_field, &offset, slash) && field_equals_nocase("/",slash)) {
 		uint64_t ttl = field_next_number(port_field, &offset);
+		UNUSEDPARM(ttl);
 		if (field_next_nonnumber(port_field, &offset, slash) && field_equals_nocase("/",slash)) {
 			if (field_is_number(port_field, offset)) {
 				uint64_t range = field_next_number(port_field, &offset);

@@ -184,6 +184,7 @@
     <ClCompile Include="..\..\src\out-jotdown.c" />
     <ClCompile Include="..\..\src\parse-address.c" />
     <ClCompile Include="..\..\src\pixie.c" />
+    <ClCompile Include="..\..\src\report-fanout.c" />
     <ClCompile Include="..\..\src\report-hosts.c" />
     <ClCompile Include="..\..\src\report-stats.c" />
     <ClCompile Include="..\..\src\stack-arp.c" />

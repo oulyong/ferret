@@ -22,6 +22,7 @@
 #include <string.h>
 #include <time.h>
 #include <signal.h>
+#include <errno.h>
 
 #ifdef WIN32
 #define _WIN32_WINNT 0x0400
@@ -180,7 +181,7 @@ pixie_strerror(char *error_msg, size_t sizeof_error_msg)
      }
 
 #else
-    sprintf_s(error_msg, sizeof_error_msg, "%s", strerror(errno));
+    snprintf(error_msg, sizeof_error_msg, "%s", strerror(errno));
 #endif
 }
 

@@ -56,7 +56,7 @@ void  http_parse_form_field(struct TCPRECORD *sess, struct NetFrame *frame,
 		if (match_name_t("PASSWORD", name)) {
 			JOTDOWN(sess->eng->ferret,
 				JOT_SRC("ID-IP", frame),
-				JOT_URLENC("password", value, value_length),
+				JOT_URLENC("form-password", value, value_length),
 				0);
 
 			if (ends_with_t(".myspace.com", req->host)) {
@@ -82,7 +82,7 @@ void  http_parse_form_field(struct TCPRECORD *sess, struct NetFrame *frame,
 			if (ends_with_t(".google.com", req->host)) {
 				if (!starts_with("cache:", req->url, req->url_length)) {
 					JOTDOWN(sess->eng->ferret,
-						JOT_SRC("ID-IP", frame),
+						JOT_SRC("IP", frame),
 						JOT_URLENC("search", value, value_length),
 						0);
 

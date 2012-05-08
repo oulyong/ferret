@@ -270,9 +270,6 @@
     <ClCompile Include="..\..\src\dgram-sip-sdp.c">
       <Filter>Source Files\dgram app</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\stack-listener.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\dgram-rtp-avp.c">
       <Filter>Source Files\dgram app</Filter>
     </ClCompile>
@@ -287,6 +284,12 @@
     </ClCompile>
     <ClCompile Include="..\..\src\report-stats.c">
       <Filter>Source Files\i/o</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\report-fanout.c">
+      <Filter>Source Files\i/o</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\stack-listener.c">
+      <Filter>Source Files\stack</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -380,11 +383,11 @@
     <ClInclude Include="..\..\src\dgram-sip.h">
       <Filter>Source Files\dgram app</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\stack-listener.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\report.h">
       <Filter>Source Files\i/o</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\stack-listener.h">
+      <Filter>Source Files\stack</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

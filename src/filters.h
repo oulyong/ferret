@@ -3,6 +3,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+struct Ferret;
+struct SniffFilter;
+struct FilterItem;
 
 void filter_set_parameter(struct Ferret *ferret, const char *name, const char *value);
 
@@ -21,6 +24,7 @@ void flt_addr_set_parameter(struct SniffFilter *flt, const char *name, const cha
 enum FilterType {
 	FLT_TYPE_PROTO,
 	FLT_TYPE_ADDR,
+	FLT_TYPE_COUNT
 };
 
 struct FilterItem {

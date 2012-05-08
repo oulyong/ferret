@@ -3,12 +3,15 @@
 #include "filters.h"
 
 #include <ctype.h>
+#include <string.h>
 
 
 struct SniffFilter
 {
 	struct FilterItem *filters;
 	unsigned count;
+	unsigned count_includes[FLT_TYPE_COUNT];
+	unsigned count_excludes[FLT_TYPE_COUNT];
 };
 
 void flt_add_item(struct SniffFilter *flt, struct FilterItem *item)
@@ -20,14 +23,28 @@ void flt_add_item(struct SniffFilter *flt, struct FilterItem *item)
 
 	memcpy(&flt->filters[flt->count], item, sizeof(*item));
 	flt->count++;
+
+	flt->count_includes[item->type] += item->include;
+	flt->count_excludes[item->type] += item->exclude;
+
 }
 
 void filter_eval(const struct SniffFilter *flt, const struct NetFrame *frame, unsigned *include, unsigned *exclude)
 {
 	unsigned i;
 
+
 	*include = 0;
 	*exclude = 0;
+
+	/*
+	 * If we've only specified 'excludes' for a filter type, then
+	 * default to 'include' anything that isn't excluded.
+	 */
+	for (i=0; i<FLT_TYPE_COUNT; i++) {
+		if (flt->count_includes[i]  == 0 && flt->count_excludes[i])
+			*include = 1;
+	}
 
 	if (flt == NULL)
 		return;
@@ -41,8 +58,13 @@ void filter_eval(const struct SniffFilter *flt, const struct NetFrame *frame, un
 		case FLT_TYPE_ADDR:
 			flt_addr_eval(flt, item, frame, include, exclude);
 			break;
+		case FLT_TYPE_COUNT:
+		default:
+			;
 		}
 	}
+
+
 }
 
 static unsigned cfg_prefix(const char *name, const char *prefix, unsigned offset)
@@ -92,7 +114,7 @@ void filter_set_parameter(struct Ferret *ferret, const char *name, const char *v
 	}
 	
 	/* This macro is defined to match the leading keyword */
-	#define MATCH(str) cfg_prefix(name, str, x) && ((x=cfg_prefix(name, str, x))>0)
+	#define MATCH(str) (cfg_prefix(name, str, x) && ((x=cfg_prefix(name, str, x))>0))
 
 	if (MATCH("proto")) {
 		flt_proto_set_parameter(ferret->sniff_filters, name, value);

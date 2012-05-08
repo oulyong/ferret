@@ -114,10 +114,12 @@ struct PcapFile
 
 	unsigned start_sec;
 	unsigned start_usec;
+	unsigned end_sec;
+	unsigned end_usec;
 	char filename[256];
 	int byte_order;
 	int linktype;
-	int frame_number;
+	int64_t frame_number;
 
 	uint64_t file_size;
 	uint64_t bytes_read;
@@ -238,6 +240,34 @@ unsigned pcapfile_percentdone(struct PcapFile *capfile, uint64_t *r_bytes_read)
 }
 
 /**
+ * 64-bit version of ftell()
+ */
+int64_t ftell_x(FILE *fp)
+{
+#ifdef WIN32
+	return _ftelli64(fp);
+#elif __GNUC__
+	return ftello64(fp);
+#else
+#error ftell_x undefined for this platform
+#endif
+}
+
+/**
+ * 64-bit version of fseek()
+ */
+int fseek_x(FILE *fp, int64_t offset, int origin)
+{
+#ifdef WIN32
+	return _fseeki64(fp, offset, origin);
+#elif __GNUC__
+	return fseeko64(fp, offset, origin);
+#else
+#error fseek_x undefined for this platform
+#endif
+}
+
+/**
  * Read the next packet from the file stream.
  */
 int pcapfile_readframe(
@@ -259,9 +289,10 @@ int pcapfile_readframe(
 	/* Read in the 16-byte frame header. */
 	bytes_read = fread(header, 1, 16, capfile->fp);
 	if (bytes_read < 16) {
-		if (bytes_read < 0)
+		if (bytes_read < 0) {
+			fprintf(stderr, "%s: failed to read header\n", capfile->filename);
 			perror(capfile->filename);
-		else if (bytes_read == 0)
+		} else if (bytes_read == 0)
 			; /* normal end-of-file */
 		else
 			fprintf(stderr, "%s: premature end-of-file\n", capfile->filename);
@@ -311,7 +342,7 @@ int pcapfile_readframe(
 	while (is_corrupt) {
 		/* TODO: we should go backwards a bit in the file */
 		unsigned char tmp[16384];
-		fpos_t position;
+		int64_t position;
 		unsigned i;
 		
 
@@ -319,9 +350,11 @@ int pcapfile_readframe(
 		/* Remember the current location. We are going to seek
 		 * back to an offset from this location once we find a good 
 		 * packet.*/
-		if (fgetpos(capfile->fp, &position) != 0) {
+		position = ftell_x(capfile->fp);
+		if (position == -1) {
+			fprintf(stderr, "%s: could not resolve file corruption (ftell) frame #%llu\n", capfile->filename, capfile->frame_number);
 			perror(capfile->filename);
-			fseek(capfile->fp, 0, SEEK_END);
+			fseek_x(capfile->fp, 0, SEEK_END);
 			return 0;
 		}
 
@@ -343,9 +376,10 @@ int pcapfile_readframe(
 
 		/* If we reach the end without finding a good frame, then stop */
 		if (bytes_read == 0) {
-			if (bytes_read < 0)
+			if (bytes_read < 0) {
+				fprintf(stderr, "%s: error at end of file\n", capfile->filename);
 				perror(capfile->filename);
-			else
+			} else
 				fprintf(stderr, "%s: premature end of file\n", capfile->filename);
 			return 0;
 		}
@@ -366,12 +400,13 @@ int pcapfile_readframe(
 			 * usually a 64-bit value and can be used to set a position,
 			 * but we cannot manipulate it directory (it's an opaque 
 			 * structure, not an integer), so we have seek back to the 
-			 * saved value, then seek relatively forward to the
+			 * saved value, fthen seek relatively forward to the
 			 * known-good spot */
-			position += i;
-			if (fsetpos(capfile->fp, &position) != 0) {
+			position = position + i;
+			if (fseek_x(capfile->fp, position, SEEK_SET) != 0) {
+				fprintf(stderr, "%s: could not resolve file corruption (seek forward)\n", capfile->filename);
 				perror(capfile->filename);
-				fseek(capfile->fp, 0, SEEK_END);
+				fseek_x(capfile->fp, 0, SEEK_END);
 				return 0;
 			}
 
@@ -421,12 +456,12 @@ int pcapfile_readframe(
 				 * not quite sure what to do here, so we are just 
 				 * going to repeat the reset of the file location
 				 * that we did above */
-				if (fsetpos(capfile->fp, &position) != 0) {
+				if (fseek_x(capfile->fp, position, SEEK_SET) != 0) {
 					perror(capfile->filename);
-					fseek(capfile->fp, 0, SEEK_END);
+					fseek_x(capfile->fp, 0, SEEK_END);
 					return 0;
 				}
-				fseek(capfile->fp, i, SEEK_CUR);
+				fseek_x(capfile->fp, i, SEEK_CUR);
 
 			}
 #endif
@@ -434,7 +469,7 @@ int pcapfile_readframe(
 			/* Print a message saying we've found a good packet. This will
 			 * help people figure out where in the file the corruption
 			 * happened, so they can figure out why it was corrupt.*/
-			fgetpos(capfile->fp, &position);
+			position = ftell_x(capfile->fp);
 			fprintf(stderr, "%s(%u): good packet found at 0x%08llx (%lld)\n",
 				capfile->filename,
 				capfile->frame_number,
@@ -457,9 +492,10 @@ int pcapfile_readframe(
 	 */
 	bytes_read = fread(buf, 1, *r_captured_length, capfile->fp);
 	if (bytes_read < *r_captured_length) {
-		if (bytes_read < 0)
+		if (bytes_read < 0) {
+			fprintf(stderr, "%s: could not read packet data, frame #%llu\n", capfile->filename, capfile->frame_number);
 			perror(capfile->filename);
-		else
+		} else
 			fprintf(stderr, "%s: premature end of file\n", capfile->filename);
 		return 0;
 	}
@@ -469,8 +505,16 @@ int pcapfile_readframe(
 		capfile->start_sec = *r_time_secs;
 		capfile->start_usec = *r_time_usecs;
 	}
+	capfile->end_sec = *r_time_secs;
+	capfile->end_usec = *r_time_usecs;
 	capfile->frame_number++;
 	return 1;
+}
+
+void pcapfile_get_timestamps(struct PcapFile *capfile, time_t *start, time_t *end)
+{
+	*start = capfile->start_sec;
+	*end = capfile->end_sec;
 }
 
 
@@ -504,6 +548,7 @@ struct PcapFile *pcapfile_openread(const char *capfilename)
 	 */
 	fp = fopen(capfilename, "rb");
 	if (fp == NULL) {
+		fprintf(stderr, "%s: could not open file\n", capfilename);
 		perror(capfilename);
 		return 0;
 	}
@@ -513,9 +558,10 @@ struct PcapFile *pcapfile_openread(const char *capfilename)
 	 */
 	bytes_read = fread(buf, 1, 24, fp);
 	if (bytes_read < 24) {
-		if (bytes_read < 0)
+		if (bytes_read < 0) {
+			fprintf(stderr, "%s: could not read PCAP header\n", capfilename);
 			perror(capfilename);
-		else if (bytes_read == 0)
+		} else if (bytes_read == 0)
 			fprintf(stderr, "%s: file empty\n", capfilename);
 		else
 			fprintf(stderr, "%s: file too short\n", capfilename);
@@ -564,6 +610,27 @@ struct PcapFile *pcapfile_openread(const char *capfilename)
 		break;
 	}
 
+	/* Read the first frame's timestamp */
+	{
+		int loc;
+		char buf[8];
+
+		loc = ftell(fp);
+		if (loc == -1) {
+			fprintf(stderr, "%s: ftell failed (file system error? seen with VMware HGFS bug)\n", capfilename);
+			perror(capfilename);
+			fclose(fp);
+			return 0;
+		}
+		fread(buf, 1, 8, fp);
+		
+		if (fseek(fp, loc, SEEK_SET) != 0) {
+			fprintf(stderr, "%s: fseek failed (file system error?)\n", capfilename);
+			perror(capfilename);
+			fclose(fp);
+			return 0;
+		}
+	}
 
 	/*
 	 * Now that the file is open and we have read in the header,
@@ -847,12 +914,14 @@ void pcapfile_writeframe(
 	}
 
 	if (fwrite(header, 1, 16, capfile->fp) != 16) {
+		fprintf(stderr, "%s: could write packet header, frame #%llu\n", capfile->filename, capfile->frame_number);
 		perror(capfile->filename);
 		fclose(capfile->fp);
 		capfile->fp = NULL;
 	}
 
 	if (fwrite(buffer, 1, buffer_size, capfile->fp) != buffer_size) {
+		fprintf(stderr, "%s: could write packet contents, frame #%llu\n", capfile->filename, capfile->frame_number);
 		perror(capfile->filename);
 		fclose(capfile->fp);
 		capfile->fp = NULL;

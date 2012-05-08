@@ -793,7 +793,7 @@ void vJOTDOWN(struct Ferret *ferret, va_list marker)
 			fprintf(stderr, "unknown record type=%u, count=%u type=0x%llx\n", fmt, record_count,
 				(long long unsigned)fmt
 				/*name, fmt, value, length*/);
-			printf("name = [0x%llx]\n", (long long unsigned)name);
+			printf("name = [0x%llx]\n", (unsigned long long)(size_t)name);
 			printf("name = %s\n", name);
 			break;
 		}

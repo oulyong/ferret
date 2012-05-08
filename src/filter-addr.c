@@ -4,6 +4,7 @@
 #include "parse-address.h"
 
 #include <ctype.h>
+#include <string.h>
 
 
 void flt_addr_set_parameter(struct SniffFilter *flt, const char *name, const char *value)

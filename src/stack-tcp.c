@@ -608,7 +608,8 @@ tcp_data(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px,
 		sess->parser = tcp_smellslike(px, length, frame);
 
 	if (sess->parser == NULL) {
-		if (frame->dst_port == 5050 || frame->src_port == 5050 && length > 4 && memcmp(px, "YMSG", 4)) {
+		if ((frame->dst_port == 5050) 
+			|| (frame->src_port == 5050 && length > 4 && memcmp(px, "YMSG", 4))) {
 			if (frame->dst_port == 5050)
 				sess->parser = stack_tcp_ymsg_client_request;
 			else
@@ -745,7 +746,7 @@ void process_tcp(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
 	}
 
 	/* Check the checksum */
-	if (!validate_tcp_checksum(px, length, frame->src_ipv4, frame->dst_ipv4)) {
+	if (0) if (!validate_tcp_checksum(px, length, frame->src_ipv4, frame->dst_ipv4)) {
 		/* Regress: defcon2008-msnmsgr.pcap(24066) */
 		ferret->statistics.errs_tcp_checksum++;		
 		frame->layer4_protocol = LAYER4_TCP_XSUMERR;
@@ -880,12 +881,15 @@ void process_tcp(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
 	if (frame->layer7_protocol == 0) {
 		if (frame->dst_port == 443 || frame->src_port == 443)
 			frame->layer7_protocol = LAYER7_SSL;
-		if (frame->dst_port == 3260 && frame->src_port > 1024
-		 || frame->src_port == 3260 && frame->dst_port > 1024)
+		if ((frame->dst_port == 3260 && frame->src_port > 1024)
+		 || (frame->src_port == 3260 && frame->dst_port > 1024))
 			frame->layer7_protocol = LAYER7_ISCSI;
-		if (frame->dst_port == 21 && frame->src_port > 1024
-		 || frame->src_port == 21 && frame->dst_port > 1024)
+		if ((frame->dst_port == 21 && frame->src_port > 1024)
+		 || (frame->src_port == 21 && frame->dst_port > 1024))
 			frame->layer7_protocol = LAYER7_FTP;
+		if ((frame->dst_port == 143 && frame->src_port > 1024)
+		 || (frame->src_port == 143 && frame->dst_port > 1024))
+			frame->layer7_protocol = LAYER7_IMAP;
 	}
 }
 

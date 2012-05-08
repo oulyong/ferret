@@ -267,6 +267,8 @@ struct Ferret
 		unsigned statistics_print:1;
 		unsigned report_stats2:1;
 		unsigned report_hosts:16;
+		unsigned report_fanout:16;
+		unsigned report_fanin:16;
 		unsigned report_filter_stats:1;
 		unsigned report_start:1;
 		unsigned quiet:1; /* global quiet flag that turns off reporting with -q on the command line */
@@ -320,6 +322,8 @@ struct Ferret
 	struct Listener *listener;
 
 	struct ReportHosts *report_hosts;
+
+	struct ReportFanout *report_fanout;
 };
 
 struct Ferret *ferret_create();

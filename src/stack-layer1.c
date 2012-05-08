@@ -51,11 +51,10 @@ void process_frame(struct Ferret *ferret, struct NetFrame *frame, const unsigned
 	}
 
 	/* Clear the information that we will set in the frame */
-	//ferret->frame.flags2 = 0;
 	frame->flags.clear = 0;
 	ferret->something_new_found = 0;
 
-	/* Try to check FCS */
+	/* Try to check FCS (for WiFi) */
 	if (ferret->linktype == 105 && frame->captured_length == frame->original_length) {
 		if (frame->frame_number == 1)
 			ferret->fcs_successes = 0;
@@ -204,6 +203,11 @@ void process_frame(struct Ferret *ferret, struct NetFrame *frame, const unsigned
 			if (frame->layer3_protocol == LAYER3_IP) {
 				record_host_transmit(ferret, frame->src_ipv4, frame->original_length);
 				record_host_receive(ferret, frame->dst_ipv4, frame->original_length);
+			}
+		}
+		if (ferret->cfg.report_fanout || ferret->cfg.report_fanin) {
+			if (frame->layer3_protocol == LAYER3_IP) {
+				record_host2host(ferret, frame->src_ipv4, frame->dst_ipv4, frame->original_length);
 			}
 		}
 	}

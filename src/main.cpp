@@ -658,9 +658,7 @@ int process_file(struct Ferret *ferret, const char *capfilename)
 
 	}
 
-	/*
-	 * Close the file
-	 */
+
 	pcapfile_close(capfile);
 
 	return 0;
@@ -945,7 +943,7 @@ int FERRET_MAIN(int argc, char **argv)
 #endif
 
 	fprintf(stderr, "-- FERRET 1.2.0 - 2008 (c) Errata Security\n");
-	fprintf(stderr, "-- build = %s %s (%lu-bits)\n", __DATE__, __TIME__, sizeof(size_t)*8);
+	fprintf(stderr, "-- build = %s %s (%u-bits)\n", __DATE__, __TIME__, (unsigned)sizeof(size_t)*8);
 
 	/*
 	 * Register a signal handler for the <ctrl-c> key. This allows
@@ -1103,17 +1101,24 @@ int FERRET_MAIN(int argc, char **argv)
 		}
 	}
 
+
 	if (ferret->output.pf) {
 		pcapfile_close(ferret->output.pf);
 		ferret->output.pf = NULL;
 	}
 
+
 	if (ferret->cfg.statistics_print)
 		report_stats1(ferret);
-	else if (ferret->cfg.report_stats2)
+	if (ferret->cfg.report_stats2)
 		report_stats2(ferret);
-	else if (ferret->cfg.report_hosts)
+	if (ferret->cfg.report_hosts)
 		report_hosts_topn(ferret, ferret->cfg.report_hosts);
+	if (ferret->cfg.report_fanout)
+		report_fanout_topn(ferret, ferret->cfg.report_fanout);
+	if (ferret->cfg.report_fanin)
+		report_fanin_topn(ferret, ferret->cfg.report_fanin);
+
 
 	/*
 	 * Create an artificial timeout frame

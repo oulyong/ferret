@@ -28,6 +28,7 @@ struct PcapFile *pcapfile_openappend(const char *capfilename, unsigned linktype)
 
 unsigned pcapfile_percentdone(struct PcapFile *handle, uint64_t *r_bytes_read);
 
+void pcapfile_get_timestamps(struct PcapFile *handle, time_t *start, time_t *end);
 
 /**
  * Set a "maximum" size for a file. When the current file fills up with data,

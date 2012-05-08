@@ -38,6 +38,8 @@ struct SIP {
 };
 
 
+/****************************************************************************
+ ****************************************************************************/
 int
 field_is_number(const struct Field *field, unsigned offset)
 {
@@ -47,6 +49,8 @@ field_is_number(const struct Field *field, unsigned offset)
 		return 0;
 }
 
+/****************************************************************************
+ ****************************************************************************/
 uint64_t
 field_next_number(const struct Field *field, unsigned *inout_offset)
 {
@@ -73,6 +77,8 @@ field_next_number(const struct Field *field, unsigned *inout_offset)
 	return result;
 }
 
+/****************************************************************************
+ ****************************************************************************/
 int
 field_equals_nocase(const char *name, const struct Field *field)
 {
@@ -86,6 +92,8 @@ field_equals_nocase(const char *name, const struct Field *field)
 	return 1;
 }
 
+/****************************************************************************
+ ****************************************************************************/
 static int
 match(const char *sz, const unsigned char *name, unsigned name_length)
 {
@@ -95,6 +103,8 @@ match(const char *sz, const unsigned char *name, unsigned name_length)
 		return 0;
 }
 
+/****************************************************************************
+ ****************************************************************************/
 static enum SIP_METHOD
 sip_get_method(const unsigned char *px, unsigned length)
 {
@@ -112,6 +122,8 @@ sip_get_method(const unsigned char *px, unsigned length)
 		return SIP_METHOD_UNKNOWN;
 }
 
+/****************************************************************************
+ ****************************************************************************/
 static int
 sip_get_header(const char *in_name, const unsigned char *px, unsigned length, struct Field *field)
 {
@@ -174,7 +186,10 @@ sip_get_header(const char *in_name, const unsigned char *px, unsigned length, st
 }
 
 
-void sip_INVITE_request(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
+/****************************************************************************
+ ****************************************************************************/
+void
+sip_INVITE_request(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
 	struct Field field;
 	struct Field content_type = {0,0};
@@ -227,9 +242,11 @@ void sip_INVITE_request(struct Ferret *ferret, struct NetFrame *frame, const uns
 	}
 }
 
-void parse_dgram_sip_request(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
+/****************************************************************************
+ ****************************************************************************/
+void
+parse_dgram_sip_request(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
-	unsigned offset = 0;
 	enum SIP_METHOD method;
 
 	frame->layer7_protocol = LAYER7_SIP;
@@ -240,10 +257,17 @@ void parse_dgram_sip_request(struct Ferret *ferret, struct NetFrame *frame, cons
 	case SIP_METHOD_INVITE:
 		sip_INVITE_request(ferret, frame, px, length);
 		break;
+	case SIP_METHOD_REGISTER:
+	case SIP_METHOD_UNKNOWN:
+	default:
+		;
 	}
 }
 
-void parse_dgram_sip_response(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
+/****************************************************************************
+ ****************************************************************************/
+void
+parse_dgram_sip_response(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
 	frame->layer7_protocol = LAYER7_SIP;
 

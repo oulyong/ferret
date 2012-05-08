@@ -6,8 +6,11 @@
 
   This decodes packets coming from an Ethernet network.
 
-  TODO: we need to support more encapsulations, such as 802.2 SAP
-  packets.
+  While Ethernet is a simple header (dest, sourc, type), there is actually
+  a lot of complexity with optional components.
+
+  http://en.wikipedia.org/wiki/QinQ
+  http://en.wikipedia.org/wiki/Ethernet_II_framing
 */
 #include "stack-parser.h"
 #include "stack-extract.h"
@@ -18,15 +21,88 @@
 
 typedef unsigned char MACADDR[6];
 
+extern void parse_PVSTP(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
 void process_llc_frame(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void dispatch_ethertype(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length, unsigned oui, unsigned ethertype);
 
 
-void dispatch_ethertype(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length, unsigned oui, unsigned ethertype)
+/****************************************************************************
+ ****************************************************************************/
+void
+process_8021q_vlan(
+	struct Ferret *ferret, 
+	struct NetFrame *frame, 
+	const unsigned char *px, unsigned length,
+	unsigned oui)
+{
+	unsigned ethertype = 0;
+	unsigned vlan_id = 0;
+
+	if (length < 4)
+		return;
+
+	/*
+	 * 802.1q is a 4 byte protocol consisting of a VLAN tag followed by
+	 * an Etheretype field, after which the frame continues as if there
+	 * were no vlan header */
+q_in_q:
+	vlan_id |= ex16be(px+0) & 0xFFF ; /* 12 bits*/
+	ethertype = ex16be(px+2);
+
+	if (ethertype <= 1536) {
+		unsigned new_length = ethertype;
+
+		px += 4;
+		length -= 4;
+		if (new_length > length) {
+			FRAMERR_BADVAL(frame, "ethertype", ethertype);
+			return;
+		} else if (new_length < length)
+			length = new_length;
+		process_llc_frame(ferret, frame, px, length);
+		return;
+	} else if (	ethertype == 0x8100		/*802.1q, invalid */
+				|| ethertype == 0x9100 /*802.1Q */
+				|| ethertype == 0x88a8 /*802.1ad */) { 
+		/* http://en.wikipedia.org/wiki/QinQ */
+		/* nested 802.1q */
+		px += 4;
+		length -= 4;
+		vlan_id <<= 12;
+		goto q_in_q;
+	} else {
+		dispatch_ethertype(ferret, frame, px+4, length-4, oui, ethertype);
+	}
+}
+
+
+/****************************************************************************
+ * Called by the Ethernet header to call the next layer protocol,
+ * such as IP for an EtherType of 0x800. This can be called in
+ * many places, such as from the normal Ethernet frame, the 
+ * LLC/SNAP header, or from 802.1q processing.
+ ****************************************************************************/
+void 
+dispatch_ethertype(
+	struct Ferret *ferret, 
+	struct NetFrame *frame, 
+	const unsigned char *px, 
+	unsigned length, 
+	unsigned oui, 
+	unsigned ethertype)
 {
 	SAMPLE(ferret,"SAP", JOT_NUM("oui", oui));
 	SAMPLE(ferret,"SAP", JOT_NUM("ethertype", ethertype));
 
 	switch (ethertype) {
+	case 0x0800: /* TCP/IP -- which is 99% of the time */
+		process_ip(ferret, frame, px, length);
+		break;
+	case 0x0806:
+		process_arp(ferret, frame, px, length);
+		break;
+	case 0x0842: /* Wake-on-LAN Magic packet */
+		break;
 	case 0x1083: /* Regress: defcon2008\dump070.pcap(2939) */
 	case 0x2b5c: /* Regress: defcon2008\dump113.pcap(89673) */
 	case 0x8f08: /* Regress: defcon2008\dump143.pcap(70839) */
@@ -35,31 +111,8 @@ void dispatch_ethertype(struct Ferret *ferret, struct NetFrame *frame, const uns
 	case 0x08a8: /* Regress: defcon2008\dump218.pcap(42163) */
 	case 0xf3ba: /* Regress: defcon2008\dump271.pcap(5933) */
 		break;
-	case 0x0800:
-		process_ip(ferret, frame, px, length);
-		break;
-	case 0x0806:
-		process_arp(ferret, frame, px, length);
-		break;
-	case 0x8100:
-		if (length < 4)
-			return;
-		ethertype = ex16be(px+2);
-		if (ethertype <= 1518) {
-			unsigned new_length = ethertype;
-
-			px += 4;
-			length -= 4;
-			if (new_length > length) {
-				FRAMERR_BADVAL(frame, "ethertype", ethertype);
-				return;
-			} else if (new_length < length)
-				length = new_length;
-			process_llc_frame(ferret, frame, px, length);
-			return;
-		} else {
-			dispatch_ethertype(ferret, frame, px+4, length-4, oui, ethertype);
-		}
+	case 0x8100: /* 802.1q VLAN */
+		process_8021q_vlan(ferret, frame, px, length, oui);
 		break;
 	case 0x888e: /*802.11x authentication*/
 		process_802_1x_auth(ferret, frame, px, length);
@@ -86,9 +139,11 @@ void dispatch_ethertype(struct Ferret *ferret, struct NetFrame *frame, const uns
 	}
 }
 
-extern void parse_PVSTP(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
 
-void process_spanningtree_frame(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
+/****************************************************************************
+ ****************************************************************************/
+void
+process_spanningtree_frame(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
 	/* see parse_PVSTP */
 	unsigned protocol_identifier;
@@ -124,7 +179,10 @@ void process_spanningtree_frame(struct Ferret *ferret, struct NetFrame *frame, c
 	}
 }
 
-void process_snap_frame(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
+/****************************************************************************
+ ****************************************************************************/
+void
+process_snap_frame(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
 	unsigned offset=0;
 	unsigned oui;
@@ -160,7 +218,10 @@ void process_snap_frame(struct Ferret *ferret, struct NetFrame *frame, const uns
 	dispatch_ethertype(ferret, frame, px+offset, length-offset, oui, ethertype);
 }
 
-void process_llc_frame(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
+/****************************************************************************
+ ****************************************************************************/
+void
+process_llc_frame(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
 	unsigned dsap;
 	unsigned ssap;
@@ -228,7 +289,7 @@ void process_llc_frame(struct Ferret *ferret, struct NetFrame *frame, const unsi
 }
 
 #if 0
-		if (ethertype < 1518) {
+		if (ethertype < 1536) {
 			if (memcmp(px+offset, "\xaa\xaa\x03", 3) != 0) {
 				JOTDOWN(ferret,
 					JOT_SZ("proto","ethernet"),
@@ -276,11 +337,38 @@ void process_llc_frame(struct Ferret *ferret, struct NetFrame *frame, const unsi
 		else
 #endif
 
-void process_ethernet_frame(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
+			
+
+/****************************************************************************
+ ****************************************************************************/
+void
+process_ethernet_frame(
+	struct Ferret *ferret, 
+	struct NetFrame *frame, 
+	const unsigned char *px, 
+	unsigned length)
 {
-	unsigned offset;
+	unsigned offset = 0;
 	unsigned ethertype;
 	
+	/*
+	 * The Ethernet header, as received from the network card,
+	 * consists of the dest/source MAC addresses and a two
+	 * byte field that is a 'length' field to be followed by
+	 * LLC (and SNAP) if its value is less than 1536, or a 
+	 * 'ethertype' field for values between 1536 and 65535,
+	 * the most common being 0x0800 to indicate that the IP
+	 * header follows next.
+	 *
+	 * +--------+--------+--------+--------+--------+--------+
+	 * |               Destination MAC Address               |
+	 * +--------+--------+--------+--------+--------+--------+
+	 * |                  Source MAC Address                 |
+	 * +--------+--------+--------+--------+--------+--------+
+	 * | EtherType/length|
+	 * +--------+--------+
+	 */
+
 	if (length <= 14) {
 		; /*FRAMERR(frame, "wifi.data: too short\n");*/
 		return;
@@ -288,23 +376,16 @@ void process_ethernet_frame(struct Ferret *ferret, struct NetFrame *frame, const
 
 	frame->src_mac = px+6;
 	frame->dst_mac = px+0;
-	
-	offset = 12;
+	ethertype = ex16be(px+12);
+	offset += 14;
 
-
-	/* Look for SAP header */
-	if (offset + 6 >= length) {
-		FRAMERR(frame, "wifi.sap: too short\n");
-		return;
-	}
-
-	ethertype = ex16be(px+offset);
-	offset += 2;
-
-	/* Ethertypes less than 2000 are 802.3 length fields instead, and
-	 * are followed by an LLC header */
-	if (ethertype < 1518) {
+	if (ethertype > 1536)
+		dispatch_ethertype(ferret, frame, px+offset, length-offset, 0, ethertype);
+	else {
 		unsigned new_length = ethertype;
+
+		/* Ethertypes less than 1536 are 802.3 length fields instead, and
+		 * are followed by an LLC header */
 
 		if (ethertype == 0x0000) {
 			/* Regress: defcon2008/dump000.pcap(114689) */
@@ -322,6 +403,4 @@ void process_ethernet_frame(struct Ferret *ferret, struct NetFrame *frame, const
 		process_llc_frame(ferret, frame, px, length);
 		return;
 	}
-
-	dispatch_ethertype(ferret, frame, px+offset, length-offset, 0, ethertype);
 }

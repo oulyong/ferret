@@ -3,6 +3,8 @@
 #include "stack-netframe.h"
 #include "parse-address.h"
 #include <assert.h>
+#include <string.h>
+#include <stdio.h>
 
 #define TABLE_SIZE 0x4000
 
