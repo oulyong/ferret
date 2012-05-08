@@ -518,11 +518,13 @@ pixie_sleep(unsigned milliseconds)
 {
 #ifdef WIN32
     Sleep(milliseconds);
-#elif defined(_POSIX_C_SOURCE)
+/*#elif defined(_POSIX_C_SOURCE)
 	struct timespec delay;
 	delay.tv_sec = 0;
 	delay.tv_nsec = milliseconds * 1000 * 1000;
 	nanosleep(&delay, 0);
+#else
+#error test*/
 #else
     usleep(milliseconds*1000);
 #endif
