@@ -942,7 +942,7 @@ int FERRET_MAIN(int argc, char **argv)
 	  //signal(SIGSEGV, handle_segfault);
 #endif
 
-	fprintf(stderr, "-- FERRET 1.2.0 - 2008 (c) Errata Security\n");
+	fprintf(stderr, "-- FERRET 3.0.1 - 2007-2012 (c) Errata Security\n");
 	fprintf(stderr, "-- build = %s %s (%u-bits)\n", __DATE__, __TIME__, (unsigned)sizeof(size_t)*8);
 
 	/*
