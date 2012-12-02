@@ -324,6 +324,8 @@ struct Ferret
 	struct ReportHosts *report_hosts;
 
 	struct ReportFanout *report_fanout;
+
+	struct ProtoPPP *proto_ppp;
 };
 
 struct Ferret *ferret_create();

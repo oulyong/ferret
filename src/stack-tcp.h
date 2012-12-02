@@ -119,10 +119,16 @@ struct POP3REQUEST {
 	unsigned state;
 
 	struct StringT *username;
+
+	unsigned opcodes[8];
+	unsigned opcodes_count;
+	unsigned opcodes_max;
+	unsigned *more_opcodes;
 };
 struct POP3RESPONSE{
-	unsigned state;
-	unsigned cmd_id;
+	unsigned state_outer;
+	unsigned state_inner;
+	unsigned opcode;
 };
 
 struct MSNREQUEST {

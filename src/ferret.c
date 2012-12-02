@@ -322,6 +322,10 @@ ferret_set_parameter(struct Ferret *ferret, const char *name, const char *value,
 		}
 	} else if (MATCH("statistics")) {
 		ferret->cfg.statistics_print = parse_boolean(value);
+		if (ferret->cfg.statistics_print) {
+			ferret->cfg.no_hamster = 1;
+			ferret->cfg.no_vectors = 1;
+		}
 	} else if (MATCH("report")) {
 		if (ferret->cfg.report_start == 0) {
 			ferret->cfg.no_hamster = 1;

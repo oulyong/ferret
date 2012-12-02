@@ -7,6 +7,7 @@
 #include "stack-extract.h"
 #include "util-mystring.h"
 
+#include <assert.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,6 +16,7 @@
 enum {
 	POP3_NONE=0,
 	POP3_APOP = 'A'<<24 | 'P'<<16 | 'O'<<8 | 'P',	/* APOP authentication */
+	POP3_CAPA = 'C'<<24 | 'A'<<16 | 'P'<<8 | 'A',	/* CAPA capability */
 	POP3_DELE = 'D'<<24 | 'E'<<16 | 'L'<<8 | 'E',	/* DELE delete a message */
 	POP3_LIST = 'L'<<24 | 'I'<<16 | 'S'<<8 | 'T',	/* LIST list available messages */
 	POP3_NOOP = 'N'<<24 | 'O'<<16 | 'O'<<8 | 'P',	/* PASS password */
@@ -23,7 +25,8 @@ enum {
 	POP3_RETR = 'R'<<24 | 'E'<<16 | 'T'<<8 | 'R',	/* RETR retrieve a message */
 	POP3_RSET = 'R'<<24 | 'S'<<16 | 'E'<<8 | 'T',	/* RSET reset the state*/
 	POP3_STAT = 'S'<<24 | 'T'<<16 | 'A'<<8 | 'T',	/* STAT status of a message*/
-	POP3_TOP  = 'T'<<24 | 'O'<<16 | 'P'<<8 | ' ',	/* TOP  retrieve headers of message */
+	POP3_STLS = 'S'<<24 | 'T'<<16 | 'L'<<8 | 'S',	/* STLS start TLS */
+	POP3_TOP  = 'T'<<24 | 'O'<<16 | 'P'<<8 | 0,		/* TOP  retrieve headers of message */
 	POP3_USER = 'U'<<24 | 'S'<<16 | 'E'<<8 | 'R',	/* USER username */
 	POP3_UIDL = 'U'<<24 | 'I'<<16 | 'D'<<8 | 'L',	/* UIDL list unique identifiers for messages */
 };
@@ -60,20 +63,67 @@ S:  <wait for next connection>
 
 */
 
+/****************************************************************************
+ * In order to support pipeline, create a FIFO queue of opcodes
+ ****************************************************************************/
+static void
+opcode_add(struct POP3REQUEST *req, unsigned opcode)
+{
+	if (req->more_opcodes) {
+		if (req->opcodes_count + 1 >= req->opcodes_max) {
+			unsigned new_max = req->opcodes_max*2 + 1;
+			unsigned *new_opcodes = (unsigned*)malloc(sizeof(req->opcodes[0]) * new_max);
+			memcpy(new_opcodes, req->more_opcodes, sizeof(req->opcodes[0]) * req->opcodes_count);
+			free(req->opcodes);
+			req->more_opcodes = new_opcodes;
+			req->opcodes_max = new_max;
+		}
+		req->more_opcodes[req->opcodes_count++] = opcode;
+	} else if (req->opcodes_count > sizeof(req->opcodes)/sizeof(req->opcodes[0])) {
+		req->opcodes_max = req->opcodes_count;
+		req->more_opcodes = (unsigned*)malloc(sizeof(req->opcodes[0]) * req->opcodes_max);
+		memcpy(req->more_opcodes, req->opcodes, sizeof(req->opcodes[0]) * req->opcodes_count);
+		opcode_add(req, opcode);
+		return;
+	} else {
+		req->opcodes[req->opcodes_count++] = opcode;
+	}
+}
+
+/****************************************************************************
+ * In order to support pipeline, create a FIFO queue of opcodes
+ ****************************************************************************/
+static unsigned
+opcode_remove(struct POP3REQUEST *req)
+{
+	unsigned *p;
+	unsigned result;
+
+	if (req->opcodes_count == 0)
+		return 0;
+	if (req->more_opcodes) {
+		p = req->more_opcodes;
+	} else
+		p = req->opcodes;
+
+	result = p[0];
+	memmove(p, p+1, sizeof(req->opcodes[0]) * req->opcodes_count);
+	req->opcodes_count--;
+
+	return result;
+}
+
+
+
 static void parse_message(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
 	UNUSEDPARM(sess);UNUSEDPARM(frame);UNUSEDPARM(px);UNUSEDPARM(length);
 }
 
-void parse_pop3_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
-{
-	struct POP3RESPONSE *rsp = &sess->layer7.pop3rsp;
-	unsigned offset = 0;
-	unsigned state = rsp->state;
-	unsigned sublen;
 	enum {
 	S_START,
 	S_RESPONSE,
+	S_RESPONSE2,
 	S_PLUS,
 	S_O,
 	S_OK,
@@ -90,11 +140,18 @@ void parse_pop3_response(struct TCPRECORD *sess, struct NetFrame *frame, const u
 	S_EOM_NL,
 	S_EOM_DOT,
 	S_EOM_CR,
+	
+	S_END
 	};
 
-	frame->layer7_protocol = LAYER7_POP3;
+void parse_response_default(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length, unsigned *r_offset)
+{
+	struct POP3RESPONSE *rsp = &sess->layer7.pop3rsp;
+	unsigned offset = *r_offset;
+	unsigned state = rsp->state_inner;
+	unsigned sublen = 0;
 
-	while (offset<length)
+	while (offset<length && state != S_END)
 	switch (state) {
 	case S_START:
 		state++;
@@ -132,10 +189,14 @@ void parse_pop3_response(struct TCPRECORD *sess, struct NetFrame *frame, const u
 		while (offset<length && isspace(px[offset]) && px[offset] != '\n')
 			offset++;
 		if (offset<length) {
-			if (rsp->cmd_id == 0)
-				state = S_LOOKING_FOR_APOP_CHALLENGE;
-			else
+			switch (rsp->opcode) {
+			default:
 				state = S_UNTIL_EOL;
+			}
+
+			/*if (rsp->cmd_id == 0)
+				state = S_LOOKING_FOR_APOP_CHALLENGE;
+			else*/
 		}			
 		break;
 	case S_MINUS:
@@ -178,7 +239,7 @@ void parse_pop3_response(struct TCPRECORD *sess, struct NetFrame *frame, const u
 			offset++;
 		if (offset<length) {
 			offset++;
-			state = S_RESPONSE;
+			state = S_END;
 		}
 		break;
 	case S_LOOKING_FOR_APOP_CHALLENGE:
@@ -204,7 +265,7 @@ void parse_pop3_response(struct TCPRECORD *sess, struct NetFrame *frame, const u
 			}
 
 			/* Prevent us from reparsing it again */
-			rsp->cmd_id++;
+			rsp->opcode = 0;
 			
 			/* We have finished grabbing the challenge. We'll keep
 			 * it in the strfrag buffer until we use it later */
@@ -245,7 +306,7 @@ void parse_pop3_response(struct TCPRECORD *sess, struct NetFrame *frame, const u
 			/* Do a CLOSE on the message */
 			parse_message(sess, frame, 0, 0);
 			offset++;
-			state = S_RESPONSE;
+			state = S_END;
 		} else
 			state = S_UNTIL_END_OF_MSG;
 		break;
@@ -257,35 +318,97 @@ void parse_pop3_response(struct TCPRECORD *sess, struct NetFrame *frame, const u
 			state = S_UNTIL_END_OF_MSG;
 		}
 		break;
+
+	case S_END:
+		*r_offset = offset;
+		return;
 	}
 
-	rsp->state = state;
+	rsp->state_inner = state;
+	*r_offset = offset;
+	if (state == S_END) {
+		rsp->state_inner = 0;
+		rsp->state_outer = 0;
+	}
 }
 
-
-static void
-set_reverse_cmd(struct TCPRECORD *sess, unsigned cmd_id)
+void parse_pop3_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
-	if (sess->reverse)
-		sess->reverse->layer7.pop3rsp.cmd_id = cmd_id;
+	struct POP3RESPONSE *rsp = &sess->layer7.pop3rsp;
+	unsigned offset = 0;
+	unsigned state_outer = rsp->state_outer;
+	unsigned sublen;
+
+	frame->layer7_protocol = LAYER7_POP3;
+
+	while (offset<length)
+	switch (state_outer) {
+	case S_START:
+		state_outer++;
+
+	case S_RESPONSE:
+		if (sess->reverse)
+			rsp->opcode = opcode_remove(&sess->reverse->layer7.pop3req);
+		else
+			rsp->opcode = 0;
+		state_outer++;
+
+	case S_RESPONSE2:
+		switch (rsp->opcode) {
+		case POP3_APOP:
+		case POP3_STLS:
+			break;
+		default:
+			parse_response_default(sess, frame, px, length, &offset);
+			break;
+		}
+		break;
+	default:
+		assert(!"possible");
+	}
+
+	rsp->state_outer = state_outer;
 }
 
+
+
+static unsigned
+get_cmd(const void *v_cmd_string, unsigned cmd_length)
+{
+	const char *cmd_string = (const char *)v_cmd_string;
+	unsigned result = 0;
+
+	if (cmd_length >= 1)
+		result |= toupper(cmd_string[0]&0xFF)<<24;
+	if (cmd_length >= 2)
+		result |= toupper(cmd_string[1]&0xFF)<<16;
+	if (cmd_length >= 3)
+		result |= toupper(cmd_string[2]&0xFF)<<8;
+	if (cmd_length >= 4)
+		result |= toupper(cmd_string[3]&0xFF)<<0;
+	if (cmd_length >= 5)
+		result = 0;
+
+	return result;
+}
+
+/****************************************************************************
+ ****************************************************************************/
 static void 
 parse_cmd_parm(struct TCPRECORD *sess, struct NetFrame *frame, struct StringReassembler *cmd, struct StringReassembler *parm)
 {
 	struct POP3REQUEST *req = &sess->layer7.pop3req;
+	unsigned opcode;
 	
-	if (cmd->length == 0)
-		return;
+	/* Get the command/opcode */
+	opcode = get_cmd(cmd->the_string, cmd->length);
 
-	set_reverse_cmd(sess, 1);
+	/* Push this opcode onto a stack of opcodes, for pipelining support */
+	opcode_add(req, opcode);
 
-	switch (toupper(cmd->the_string[0])) {
-	case 'A':
-		/*
-		 * Sniff the username and password
-		 */
-		if (MATCHES("APOP", cmd->the_string, cmd->length)) {
+	switch (opcode) {
+	case POP3_APOP:
+		{
 			const unsigned char *user;
 			unsigned user_length=0;
 			const unsigned char *md5;
@@ -293,8 +416,6 @@ parse_cmd_parm(struct TCPRECORD *sess, struct NetFrame *frame, struct StringReas
 			const unsigned char *challenge;
 			unsigned challenge_length;
 			unsigned i;
-
-			set_reverse_cmd(sess, POP3_APOP);
 
 			if (parm->length == 0)
 				break;
@@ -338,8 +459,12 @@ parse_cmd_parm(struct TCPRECORD *sess, struct NetFrame *frame, struct StringReas
 				0);
 		}
 		break;
-	case 'D':
-		if (MATCHES("DELE", cmd->the_string, cmd->length)) {
+	case POP3_CAPA:
+		{
+		}
+		break;
+	case POP3_DELE:
+		{
 			/*Examples:
 			 *	 C: DELE 1
 			 *	 S: +OK message 1 deleted
@@ -348,11 +473,10 @@ parse_cmd_parm(struct TCPRECORD *sess, struct NetFrame *frame, struct StringReas
 			 *	 S: -ERR message 2 already deleted
 			 */
 
-			set_reverse_cmd(sess, POP3_DELE);
 		}
 		break;
-	case 'L':
-		if (MATCHES("LIST", cmd->the_string, cmd->length)) {
+	case POP3_LIST:
+		{
 			/*Examples:
 			 *	 C: LIST
 			 *	 S: +OK 2 messages (320 octets)
@@ -364,21 +488,18 @@ parse_cmd_parm(struct TCPRECORD *sess, struct NetFrame *frame, struct StringReas
 			 *	 C: LIST 3
 			 *	 S: -ERR no such message, only 2 messages in maildrop
 			 */
-			set_reverse_cmd(sess, POP3_LIST);
 		}
 		break;
-	case 'N':
-		if (MATCHES("NOOP", cmd->the_string, cmd->length)) {
+	case POP3_NOOP:
+		{
 			/*Examples:
 			 *	 C: NOOP
 			 *	 S: +OK
 			 */
-			set_reverse_cmd(sess, POP3_NOOP);
 		}
 		break;
-	case 'P':
-		if (MATCHES("PASS", cmd->the_string, cmd->length)) {
-			set_reverse_cmd(sess, POP3_PASS);
+	case POP3_PASS:
+		{
 			if (req->username)
 				JOTDOWN(sess->eng->ferret,
 					JOT_SRC("ID-IP", frame),
@@ -392,8 +513,8 @@ parse_cmd_parm(struct TCPRECORD *sess, struct NetFrame *frame, struct StringReas
 					0);
 		}
 		break;
-	case 'Q':
-		if (MATCHES("QUIT", cmd->the_string, cmd->length)) {
+	case POP3_QUIT:
+		{
 			/*Examples:
 			 *	 C: QUIT
 			 *	 S: +OK dewey POP3 server signing off (maildrop empty)
@@ -401,38 +522,36 @@ parse_cmd_parm(struct TCPRECORD *sess, struct NetFrame *frame, struct StringReas
 			 *	 C: QUIT
 			 *	 S: +OK dewey POP3 server signing off (2 messages left)
 			 */
-			set_reverse_cmd(sess, POP3_QUIT);
 		}
 		break;
-	case 'R':
-		if (MATCHES("RETR", cmd->the_string, cmd->length)) {
+	case POP3_RETR:
+		{
 			/* Examples:
 			 *	 C: RETR 1
 			 *	 S: +OK 120 octets
 			 *	 S: <the POP3 server sends the entire message here>
 			 *	 S: .
 			 */
-			set_reverse_cmd(sess, POP3_RETR);
 		}
-		else if (MATCHES("RSET", cmd->the_string, cmd->length)) {
+		break;
+	case POP3_RSET:
+		{
 			/* Examples:
 			 *	 C: RSET
 			 *	 S: +OK maildrop has 2 messages (320 octets)
 			 */
-			set_reverse_cmd(sess, POP3_RSET);
 		}
 		break;
-	case 'S':
-		if (MATCHES("STAT", cmd->the_string, cmd->length)) {
+	case POP3_STAT:
+		{
 			/* Examples:
              *  C: STAT
              *  S: +OK 2 320
 			 */
-			set_reverse_cmd(sess, POP3_STAT);
 		}
 		break;
-	case 'T':
-		if (MATCHES("TOP", cmd->the_string, cmd->length)) {
+	case POP3_TOP:
+		{
 			/*Examples:
 			 *	 C: TOP 1 10
 			 *	 S: +OK
@@ -444,14 +563,13 @@ parse_cmd_parm(struct TCPRECORD *sess, struct NetFrame *frame, struct StringReas
 			 *	 C: TOP 100 3
 			 *	 S: -ERR no such message
 			 */
-			set_reverse_cmd(sess, POP3_TOP);
 		}
 		break;
-	case 'U':
+	case POP3_USER:
 		/*
 		 * Sniff the username and password
 		 */
-		if (MATCHES("USER", cmd->the_string, cmd->length)) {
+		{
 			/* Examples:
              *	C: USER frated
              *	S: -ERR sorry, no mailbox for frated here
@@ -459,7 +577,6 @@ parse_cmd_parm(struct TCPRECORD *sess, struct NetFrame *frame, struct StringReas
              *	C: USER mrose
              *	S: +OK mrose is a real hoopy frood
 			 */
-			set_reverse_cmd(sess, POP3_USER);
 
 			/* Remember the username for later activity on this connection */
 			req->username = stringtab_lookup(sess->eng->stringtab, parm->the_string, parm->length);
@@ -470,7 +587,9 @@ parse_cmd_parm(struct TCPRECORD *sess, struct NetFrame *frame, struct StringReas
 				JOT_PRINT("POP3-user", parm->the_string, parm->length),
 				0);
 		}
-		if (MATCHES("UIDL", cmd->the_string, cmd->length)) {
+		break;
+	case POP3_UIDL:
+		{
 			    /*Examples:
 				 *	  C: UIDL
 				 *	  S: +OK
@@ -484,7 +603,6 @@ parse_cmd_parm(struct TCPRECORD *sess, struct NetFrame *frame, struct StringReas
 				 *	  C: UIDL 3
 				 *	  S: -ERR no such message, only 2 messages in maildrop
 				 */
-			set_reverse_cmd(sess, POP3_UIDL);
 		}
 		break;
 	default:
