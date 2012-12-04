@@ -206,6 +206,10 @@ static unsigned null_CAN_TRANSMIT(const char *devicename)
 	return result;
 #elif defined(__linux__)
 	return 1;
+#elif defined(__APPLE__) || defined(__FreeBSD__)
+    return 1;
+#else
+#error unknown os
 #endif
 }
 
@@ -283,6 +287,8 @@ void pcaplive_init(struct PCAPLIVE *pl)
 		hLibpcap = dlopen("libpcap.so.0.9.4", RTLD_LAZY);
 	if (hLibpcap==NULL)
 		hLibpcap = dlopen("libpcap.so.0.8", RTLD_LAZY);
+	if (hLibpcap==NULL)
+		hLibpcap = dlopen("libpcap.A.dylib", RTLD_LAZY);
 	if (hLibpcap == NULL) {
 		if (pl->is_printing_debug) {
 			fprintf(stderr, "%s: couldn't load %d (%s)\n", "libpcap.so", errno, strerror(errno));

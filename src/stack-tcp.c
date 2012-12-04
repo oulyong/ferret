@@ -284,7 +284,7 @@ tcp_lookup_session(
 		/* Clean up the fragmentation buffers
 		 * TODO: we need to separately process these fragments */
 		if (sess->segments != NULL)
-			; /*FRAMERR(frame, "%s: discarding segment data\n", "TCP");*/
+			FRAMERR(frame, "%s: discarding segment data\n", "TCP");
 		tcpfrag_delete_all(&sess->segments);
 
 		/* Free the string reassemblers */

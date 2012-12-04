@@ -24,7 +24,7 @@ extern "C" {
 #define strnicmp strncasecmp
 #define sprintf_s snprintf
 #include <stdio.h>
-#include <malloc.h>
+//#include <malloc.h>
 #include <stdint.h>
 int strcpy_s(
    char *dst,

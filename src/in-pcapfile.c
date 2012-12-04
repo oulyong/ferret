@@ -247,7 +247,11 @@ int64_t ftell_x(FILE *fp)
 #ifdef WIN32
 	return _ftelli64(fp);
 #elif __GNUC__
+#if defined(__APPLE__)
+    return ftello(fp);
+#else
 	return ftello64(fp);
+#endif
 #else
 #error ftell_x undefined for this platform
 #endif
@@ -261,7 +265,11 @@ int fseek_x(FILE *fp, int64_t offset, int origin)
 #ifdef WIN32
 	return _fseeki64(fp, offset, origin);
 #elif __GNUC__
+#if defined(__APPLE__)
+    return fseeko(fp, offset, origin);
+#else
 	return fseeko64(fp, offset, origin);
+#endif
 #else
 #error fseek_x undefined for this platform
 #endif
@@ -289,10 +297,7 @@ int pcapfile_readframe(
 	/* Read in the 16-byte frame header. */
 	bytes_read = fread(header, 1, 16, capfile->fp);
 	if (bytes_read < 16) {
-		if (bytes_read < 0) {
-			fprintf(stderr, "%s: failed to read header\n", capfile->filename);
-			perror(capfile->filename);
-		} else if (bytes_read == 0)
+        if (bytes_read == 0)
 			; /* normal end-of-file */
 		else
 			fprintf(stderr, "%s: premature end-of-file\n", capfile->filename);
@@ -361,7 +366,7 @@ int pcapfile_readframe(
 		/* Print an error message indicating corruption was found. Note
 		 * that if corruption happens past 4-gigs on a 32-bit system, this
 		 * will print an inaccurate number */
-		fprintf(stderr, "%s(%u): corruption found at 0x%08llx (%lld)\n", 
+		fprintf(stderr, "%s(%llu): corruption found at 0x%08llx (%lld)\n", 
 			capfile->filename,
 			capfile->frame_number,
 			position,
@@ -376,11 +381,7 @@ int pcapfile_readframe(
 
 		/* If we reach the end without finding a good frame, then stop */
 		if (bytes_read == 0) {
-			if (bytes_read < 0) {
-				fprintf(stderr, "%s: error at end of file\n", capfile->filename);
-				perror(capfile->filename);
-			} else
-				fprintf(stderr, "%s: premature end of file\n", capfile->filename);
+            fprintf(stderr, "%s: premature end of file\n", capfile->filename);
 			return 0;
 		}
 		capfile->bytes_read += bytes_read;
@@ -470,7 +471,7 @@ int pcapfile_readframe(
 			 * help people figure out where in the file the corruption
 			 * happened, so they can figure out why it was corrupt.*/
 			position = ftell_x(capfile->fp);
-			fprintf(stderr, "%s(%u): good packet found at 0x%08llx (%lld)\n",
+			fprintf(stderr, "%s(%llu): good packet found at 0x%08llx (%lld)\n",
 				capfile->filename,
 				capfile->frame_number,
 				position,
@@ -492,11 +493,7 @@ int pcapfile_readframe(
 	 */
 	bytes_read = fread(buf, 1, *r_captured_length, capfile->fp);
 	if (bytes_read < *r_captured_length) {
-		if (bytes_read < 0) {
-			fprintf(stderr, "%s: could not read packet data, frame #%llu\n", capfile->filename, capfile->frame_number);
-			perror(capfile->filename);
-		} else
-			fprintf(stderr, "%s: premature end of file\n", capfile->filename);
+		fprintf(stderr, "%s: premature end of file\n", capfile->filename);
 		return 0;
 	}
 	capfile->bytes_read += bytes_read;
@@ -558,10 +555,7 @@ struct PcapFile *pcapfile_openread(const char *capfilename)
 	 */
 	bytes_read = fread(buf, 1, 24, fp);
 	if (bytes_read < 24) {
-		if (bytes_read < 0) {
-			fprintf(stderr, "%s: could not read PCAP header\n", capfilename);
-			perror(capfilename);
-		} else if (bytes_read == 0)
+        if (bytes_read == 0)
 			fprintf(stderr, "%s: file empty\n", capfilename);
 		else
 			fprintf(stderr, "%s: file too short\n", capfilename);

@@ -337,7 +337,7 @@ void parse_pop3_response(struct TCPRECORD *sess, struct NetFrame *frame, const u
 	struct POP3RESPONSE *rsp = &sess->layer7.pop3rsp;
 	unsigned offset = 0;
 	unsigned state_outer = rsp->state_outer;
-	unsigned sublen;
+	
 
 	frame->layer7_protocol = LAYER7_POP3;
 

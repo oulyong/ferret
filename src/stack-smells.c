@@ -100,7 +100,7 @@ smellslike_msrpc_toserver(struct SmellsDCERPC *smell, const unsigned char *px, u
     case S_TYPE:
         {
             unsigned c = px[i++];
-            if ((0x00 <= c && c <= 0x03) || (0x0b <= c && c <= 0x13)) {
+            if ((/*0x00 <= c &&*/ c <= 0x03) || (0x0b <= c && c <= 0x13)) {
                 if (c == 0x0b) {
                     TRANSITION(S_BIND_FLAGS);
                 } else {
@@ -197,7 +197,7 @@ smellslike_msrpc_toserver(struct SmellsDCERPC *smell, const unsigned char *px, u
 
 
     case S_YES:
-		i = length;
+		//i = length;
 	    smell->state = (unsigned short)s;
 		return 1;
 
@@ -222,7 +222,7 @@ smellslike_ssl_request(const struct NetFrame *frame, struct SmellsSSL *smell, co
 	while (offset < length)
 	switch (state) {
 	case (unsigned)-1:
-		offset = length;
+		//offset = length;
 		smell->state = state;
 		return 0;
 		break;

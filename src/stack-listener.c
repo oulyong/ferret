@@ -129,6 +129,9 @@ listener_register_udp(
 
 		item = item->next;
 	}
+    
+    if (item == 0)
+        return;
 
 
 	item->ip = ip;

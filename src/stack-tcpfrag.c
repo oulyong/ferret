@@ -77,7 +77,7 @@ unsigned tcpfrag_max_contiguous(struct TCP_segment *frag, unsigned in_seqno)
 
 	/* Find the starting fragment */
 	for ( ; frag; frag = frag->next) {
-		if (seqno - frag->seqno < 0)
+		if ((int)(seqno - frag->seqno) < 0) /*FIXME: this may be wrong*/
 			continue;
 		if (frag->seqno + frag->length - seqno <= 0)
 			continue;

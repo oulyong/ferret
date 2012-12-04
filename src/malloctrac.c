@@ -67,8 +67,8 @@ void *t_malloc(size_t size)
 	hdr->id = ++tracker.id;
 
 	/* TEMP: for tracking a block */
-	if (hdr->id == 81)
-		; //printf(".");
+	//if (hdr->id == 81)
+		//printf(".");
 
 	/*
 	 * Insert into doubly-linked list
