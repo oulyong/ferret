@@ -8,6 +8,7 @@
 #include "util-housekeeping.h"
 #include "stack-tcpchecksum.h"
 #include "stack-smells.h"
+#include "report.h"
 
 #include <ctype.h>
 #include <string.h>
@@ -37,6 +38,15 @@ static void tcp_syn(struct Ferret *ferret, struct NetFrame *frame)
 }
 static void tcp_synack(struct Ferret *ferret, struct NetFrame *frame)
 {
+	record_listening_port(	ferret,
+							frame->ipttl,
+							frame->ipver, frame->src_ipv4, frame->src_ipv6, 
+							LISTENING_ON_TCP, 
+							frame->src_port, 
+							0, /* no proto */ 
+							0, /* no banner */
+							0);
+
 	UNUSEDPARM(ferret);UNUSEDPARM(frame);
 }
 static void tcp_fin(struct Ferret *ferret, struct NetFrame *frame)

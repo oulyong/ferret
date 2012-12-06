@@ -147,7 +147,7 @@ config_echo(struct Ferret *ferret, FILE *fp)
 	LOG_BOOL("statistics.print", ferret->cfg.statistics_print);
 	LOG_BOOL("report.stats", ferret->cfg.report_stats2);
 	LOG_NUM("report.hosts", ferret->cfg.report_hosts);
-	LOG_NUM("report.hosts", ferret->cfg.report_hosts);
+	LOG_NUM("report.nmap", ferret->cfg.report_nmap);
 	LOG_NUM("report.fanout", ferret->cfg.report_fanout);
 	LOG_NUM("report.fanin", ferret->cfg.report_fanin);
 	LOG_BOOL("config.quiet", ferret->cfg.quiet);
@@ -338,6 +338,11 @@ ferret_set_parameter(struct Ferret *ferret, const char *name, const char *value,
 				report_hosts_set_parameter(ferret, "addr", value);
 			} else
 				ferret->cfg.report_hosts = strtoul(value,0,0);
+		} else if (MATCH("nmap")) {
+			if (MATCH("addr")) {
+				report_hosts_set_parameter(ferret, "addr", value);
+			} else
+				ferret->cfg.report_nmap = strtoul(value,0,0);
 		} else if (MATCH("fanout")) {
 			if (MATCH("addr")) {
 				report_fanout_set_parameter(ferret, "addr", value);
@@ -352,6 +357,8 @@ ferret_set_parameter(struct Ferret *ferret, const char *name, const char *value,
 			ferret->cfg.report_stats2 = 1;
 		else if (memcmp(value, "host", 4)==0)
 			ferret->cfg.report_hosts = 20;
+		else if (memcmp(value, "nmap", 4)==0)
+			ferret->cfg.report_nmap = 20;
 		else if (memcmp(value, "fanout", 4)==0)
 			ferret->cfg.report_fanout = 20;
 		else if (memcmp(value, "fanin", 4)==0)

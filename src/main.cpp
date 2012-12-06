@@ -749,6 +749,40 @@ void main_set_wifi_defaults(struct Ferret *ferret, const char *channel)
 
 }
 
+
+/**
+ * Set which 'operation' we are going to perform on the packets
+ * Some examples are:
+ *	cookies
+ *		Grab cookies and send to Hamster.
+ *  protos
+ *		List the protocols within the packets.
+ *	fanin
+ *		Sort hosts according to top incoming connections.
+ *  fanout
+ *		Sort hosts according to top outgoing connections.
+ */
+static void 
+main_args_operation(const char *op, struct Ferret *ferret)
+{
+	if (memcmp("fanin", op, 5) == 0)
+		ferret_set_parameter(ferret, "report.fanin", "100", 0);
+	else if (memcmp("fanout", op, 5) == 0)
+		ferret_set_parameter(ferret, "report.fanout", "100", 0);
+	else if (memcmp("host", op, 4) == 0)
+		ferret_set_parameter(ferret, "report.host", "100", 0);
+	else if (memcmp("stats1", op, 6) == 0)
+		ferret_set_parameter(ferret, "statistics", "true", 0);
+	else if (memcmp("protos", op, 5) == 0)
+		ferret_set_parameter(ferret, "report", "stat", 0);
+	else if (memcmp("nmap", op, 4) == 0)
+		ferret_set_parameter(ferret, "report", "nmap", 0);
+	else {
+		fprintf(stderr, "unknown operation: %s\n", op);
+		exit(1);
+	}
+}
+
 /**
  * Parse the command-line arguments
  */
@@ -756,8 +790,19 @@ static void
 main_args(int argc, char **argv, struct Ferret *ferret)
 {
 	int i;
+	int first_arg = 1;
 
-	for (i=1; i<argc; i++) {
+	/*
+	 * See if there is an <op> command
+	 */
+	if (argc > 1 && argv[1][0] != '-'
+		&& memcmp(argv[1], "filter", 6) != 0) {
+		first_arg = 1;
+		main_args_operation(argv[1], ferret);
+	}
+
+
+	for (i=first_arg; i<argc; i++) {
 		const char *arg = argv[i];
 
 		/* See if a <name=value> style configuration parameter was 
@@ -964,7 +1009,7 @@ int FERRET_MAIN(int argc, char **argv)
 		fprintf(stderr,"Without WinPcap, you can process capture packet capture files (offline mode), \n");
 		fprintf(stderr,"but you will not be able to monitor the network (live mode).\n");
 	} else {
-		fprintf(stderr,"-- %s\n", pcap.lib_version());
+		//fprintf(stderr,"-- %s\n", pcap.lib_version());
 	}
 
 
@@ -1114,6 +1159,10 @@ int FERRET_MAIN(int argc, char **argv)
 		report_stats2(ferret);
 	if (ferret->cfg.report_hosts)
 		report_hosts_topn(ferret, ferret->cfg.report_hosts);
+	if (ferret->cfg.report_nmap)
+		report_nmap(ferret, ferret->cfg.report_nmap);
+	if (ferret->cfg.report_nmap)
+		report_nmap(ferret, ferret->cfg.report_hosts);
 	if (ferret->cfg.report_fanout)
 		report_fanout_topn(ferret, ferret->cfg.report_fanout);
 	if (ferret->cfg.report_fanin)

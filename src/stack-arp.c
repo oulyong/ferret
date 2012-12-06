@@ -24,6 +24,7 @@
 #include "ferret.h"
 #include "util-manuf.h"
 #include "util-memcasecmp.h"
+#include "report.h"
 #include <string.h>
 
 
@@ -176,6 +177,18 @@ void process_arp(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
 	mac_dst = px+8+layer2_address_length+layer3_address_length;
 	ip_dst = ex32be(px+8+layer2_address_length+layer3_address_length+layer2_address_length);
 
+	/* Report the existance of the machine */
+	{
+		record_listening_port(
+			ferret, 0,
+			4, ip_src, 0,
+			LISTENING_ON_ETHERNET,
+			0,	/* no port */
+			0,	/* no proto */
+			0,
+			0);
+
+	}
 
 	rfc4536_check(ferret, frame, opcode, mac_src, ip_src, mac_dst, ip_dst);
 

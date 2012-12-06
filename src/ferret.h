@@ -267,12 +267,14 @@ struct Ferret
 		unsigned statistics_print:1;
 		unsigned report_stats2:1;
 		unsigned report_hosts:16;
+		unsigned report_nmap:16;
 		unsigned report_fanout:16;
 		unsigned report_fanin:16;
 		unsigned report_filter_stats:1;
 		unsigned report_start:1;
 		unsigned quiet:1; /* global quiet flag that turns off reporting with -q on the command line */
-		unsigned is_speed_timer:1; 
+		unsigned is_speed_timer:1;
+		unsigned is_wifi_slow:1;
 		char *echo;
 	} cfg;
 
@@ -322,6 +324,8 @@ struct Ferret
 	struct Listener *listener;
 
 	struct ReportHosts *report_hosts;
+
+	struct ReportNmap *report_nmap;
 
 	struct ReportFanout *report_fanout;
 

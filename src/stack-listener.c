@@ -140,6 +140,71 @@ listener_register_udp(
 	item->timestamp = time_secs;
 }
 
+	void
+listener_register_tcp(
+	struct Ferret *ferret, 
+	enum LISTENER_TYPE application_protocol,
+	unsigned ip,
+	unsigned port,
+	unsigned time_secs
+	)
+{
+	unsigned index;
+	struct ListenerItem *item;
+	struct Listener *listener;
+
+	if (ferret->listener == NULL)
+		ferret->listener = listener_create();
+	listener = ferret->listener;
+
+
+	index = hash(ip, port);
+	index &= TABLE_SIZE-1; /*table size must be power of 2 */
+
+
+	/*
+	 * Check for duplicates. This is actually quite common. We are 
+	 * just going to update the timestamp and exit
+	 */
+	item = &listener->table_tcp[index];
+	while (item) {
+		if (item->ip == ip && item->port == port && item->protocol == application_protocol) {
+			return;
+		}
+		item = item->next;
+	}
+
+	/*
+	 * Not found, so insert a new one
+	 */
+	item = &listener->table_tcp[index];
+	while (item) {
+		if (item->timestamp + 60*60 < time_secs) {
+			/* The previous record is over an hour old. Therefore, just discard
+			 * that record and replace it with this new one */
+			break;
+		}
+
+		if (item->next == NULL) {
+			item->next = (struct ListenerItem *)malloc(sizeof(*item));
+			item = item->next;
+			item->next = 0;
+			break;
+		}
+
+		item = item->next;
+	}
+    
+    if (item == 0)
+        return;
+
+
+	item->ip = ip;
+	item->port = port;
+	item->protocol = application_protocol;
+	item->timestamp = time_secs;
+}
+
 
 unsigned
 listener_lookup_udp(
@@ -161,6 +226,34 @@ listener_lookup_udp(
 
 
 	item = &listener->table_udp[index];
+	while (item) {
+		if (item->ip == ip && item->port == port)
+			return item->protocol;
+		item = item->next;
+	}
+
+	return 0;
+}
+unsigned
+listener_lookup_tcp(
+	struct Ferret *ferret, 
+	unsigned ip,
+	unsigned port
+	)
+{
+	unsigned index;
+	struct ListenerItem *item;
+	struct Listener *listener;
+
+	if (ferret->listener == NULL)
+		return 0;
+	listener = ferret->listener;
+
+
+	index = hash(ip, port) & (TABLE_SIZE-1);
+
+
+	item = &listener->table_tcp[index];
 	while (item) {
 		if (item->ip == ip && item->port == port)
 			return item->protocol;

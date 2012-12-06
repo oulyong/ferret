@@ -23,7 +23,7 @@ hexval(int c)
 }
 
 /* Set the offset to the character that caused the error before returning */
-#define RETURN_ERR(n) *offset=i,n
+#define RETURN_ERR(n) (r_offset?(*r_offset=i,n):(n))
 
 /****************************************************************************
  * Format an IPv6 address.
@@ -239,10 +239,15 @@ format_address(	char *buf, size_t sizeof_buf,
  * may or may not change some fields in 'ip'.
  ****************************************************************************/
 int
-parse_ipv4_address(const char *px, unsigned *offset, unsigned length, struct ParsedIpAddress *ip)
+parse_ipv4_address(const char *px, unsigned *r_offset, unsigned length, struct ParsedIpAddress *ip)
 {
-    unsigned i = *offset;
+    unsigned i;
     unsigned j;
+
+	if (r_offset)
+		i = *r_offset;
+	else
+		i = 0;
 
     /* Provisionally set this to IPv4 for this function (IPv6 parser will 
 	 * set this likewise to IPv6 if it succeeds) */
@@ -304,7 +309,8 @@ parse_ipv4_address(const char *px, unsigned *offset, unsigned length, struct Par
             ip->prefix_length = (unsigned char)n;
     }
 
-    *offset = i;
+	if (r_offset)
+	    *r_offset = i;
     return true;
 }
 
@@ -324,12 +330,17 @@ parse_ipv4_address(const char *px, unsigned *offset, unsigned length, struct Par
  *
  ****************************************************************************/
 static int
-parse_ipv6_address(const char *px, unsigned *offset, size_t length, struct ParsedIpAddress *ip)
+parse_ipv6_address(const char *px, unsigned *r_offset, size_t length, struct ParsedIpAddress *ip)
 {
-	unsigned i = *offset;
+	unsigned i;
 	unsigned is_bracket_seen = 0;
 	unsigned elision_offset = (unsigned)~0;
 	unsigned d = 0;
+	
+	if (r_offset)
+		i = *r_offset;
+	else
+		i = 0;
 
 	/* Provisionally set this to IPv6 */
 	ip->version = 6;
@@ -459,7 +470,8 @@ parse_ipv6_address(const char *px, unsigned *offset, size_t length, struct Parse
             ip->prefix_length = (unsigned char)n;
     }
 
-    *offset = i;
+	if (r_offset)
+		*r_offset = i;
     return true;
 }
 
@@ -486,9 +498,16 @@ parse_ipv6_address(const char *px, unsigned *offset, size_t length, struct Parse
  *		4 or 6.
  ****************************************************************************/
 int
-parse_ip_address(const char *px, unsigned *offset, unsigned length, struct ParsedIpAddress *ip)
+parse_ip_address(const void *vpx, unsigned *r_offset, unsigned length, struct ParsedIpAddress *ip)
 {
+	const char *px = (const char *)vpx;
 	unsigned i;
+	unsigned offset;
+
+	if (r_offset)
+		offset = *r_offset;
+	else
+		offset = 0;
 
 	ip->version = 0;
 
@@ -497,7 +516,7 @@ parse_ip_address(const char *px, unsigned *offset, unsigned length, struct Parse
 	  * IPv4: ".0123456789"
 	  * IPv6: ":0123456789abcdef"
 	  */
-	for (i=*offset;  i<length && ip->version==0;  i++) {
+	for (i=offset;  i<length && ip->version==0;  i++) {
 		switch (px[i]) {
 		case '0': case '1': case '2': case '3': case '4': 
 		case '5': case '6': case '7': case '8': case '9':
@@ -522,9 +541,9 @@ parse_ip_address(const char *px, unsigned *offset, unsigned length, struct Parse
 	 * Now parse the address
 	 */
 	if (ip->version == 6)
-		return parse_ipv6_address(px, offset, length, ip);
+		return parse_ipv6_address(px, r_offset, length, ip);
 	else
-		return parse_ipv4_address(px, offset, length, ip);
+		return parse_ipv4_address(px, r_offset, length, ip);
 }
 
 

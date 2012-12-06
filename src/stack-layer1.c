@@ -59,7 +59,7 @@ void process_frame(struct Ferret *ferret, struct NetFrame *frame, const unsigned
 		if (frame->frame_number == 1)
 			ferret->fcs_successes = 0;
 
-		if (wifi_validate_fcs(px, length)) {
+		if (ferret->cfg.is_wifi_slow && wifi_validate_fcs(px, length)) {
 			ferret->statistics.fcs_good++;
 			ferret->fcs_successes++;
 			

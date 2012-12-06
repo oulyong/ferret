@@ -34,6 +34,9 @@
     <Filter Include="Source Files\file">
       <UniqueIdentifier>{d277c7e9-1570-4146-b957-b54711485d23}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\smells">
+      <UniqueIdentifier>{20afe545-e50a-414e-a701-3653a053c98a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\ferret.c">
@@ -290,6 +293,9 @@
     </ClCompile>
     <ClCompile Include="..\..\src\stack-listener.c">
       <Filter>Source Files\stack</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\report-nmap.c">
+      <Filter>Source Files\i/o</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

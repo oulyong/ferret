@@ -5,6 +5,7 @@ struct Ferret;
 enum LISTENER_TYPE {
 	LISTENER_UNKNOWN,
 	LISTENER_UDP_SIP,
+	LISTENER_TCP_SIP,
 	LISTENER_UDP_RTPAVP,
 	LISTENER_UDP_RTCP,
 	LISTENER_TCP_FTPDATA,
@@ -32,12 +33,25 @@ void listener_register_udp(
 	unsigned port,
 	unsigned time_secs
 	);
+void listener_register_tcp(
+	struct Ferret *ferret, 
+	enum LISTENER_TYPE application_protocol,
+	unsigned ip,
+	unsigned port,
+	unsigned time_secs
+	);
 
 /**
  * Called while processing UDP packets to lookup a dynamic port
  */
 unsigned
 listener_lookup_udp(
+	struct Ferret *ferret, 
+	unsigned ip,
+	unsigned port
+	);
+unsigned
+listener_lookup_tcp(
 	struct Ferret *ferret, 
 	unsigned ip,
 	unsigned port

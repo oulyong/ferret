@@ -5,6 +5,7 @@
 #include "stack-netframe.h"
 #include "stack-extract.h"
 #include "ferret.h"
+#include "report.h"
 
 void process_ip(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
@@ -47,6 +48,32 @@ void process_ip(struct Ferret *ferret, struct NetFrame *frame, const unsigned ch
 	ip.src_ip = ex32be(px+12);
 	ip.dst_ip = ex32be(px+16);
 
+
+	switch (ip.ttl) {
+	case 255:
+	case 254:
+	case 253:
+	case 128:
+	case 127:
+	case 126:
+	case 125:
+	case 64:
+	case 63:
+	case 62:
+		{
+			record_listening_port(
+				ferret, ip.ttl,
+				4, ip.src_ip, 0,
+				LISTENING_ON_ETHERNET,
+				0,	/* no port */
+				0,	/* no proto */
+				0,
+				0);
+
+		}
+
+	}
+
     if (ip.fragment_offset != 0)
 		return;
 
@@ -69,6 +96,7 @@ void process_ip(struct Ferret *ferret, struct NetFrame *frame, const unsigned ch
         	ferret->statistics.ip4size.size1500++;
     }
 
+	frame->ipttl = ip.ttl;
 	frame->src_ipv4 = ip.src_ip;
 	frame->dst_ipv4 = ip.dst_ip;
 

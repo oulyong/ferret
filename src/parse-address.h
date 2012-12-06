@@ -16,7 +16,7 @@ struct ParsedIpAddress {
 };
 
 /* Set the offset to the character that caused the error before returning */
-#define RETURN_ERR(n) *offset=i,n
+//#define RETURN_ERR(n) *offset=i,n
 
 /**
  * Attempt to parse an address (IPv4 or IPv6) from the input, including a CIDR-style
@@ -44,7 +44,7 @@ struct ParsedIpAddress {
  *		character at fault.
  */
 int
-parse_ip_address(const char *px, unsigned *offset, unsigned length, struct ParsedIpAddress *ip);
+parse_ip_address(const void *px, unsigned *offset, unsigned length, struct ParsedIpAddress *ip);
 
 
 /**

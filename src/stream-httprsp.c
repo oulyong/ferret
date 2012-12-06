@@ -8,6 +8,7 @@
 #include "util-base64.h"
 #include "util-hamster.h"
 #include "stream-http.h"
+#include "report.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -274,10 +275,31 @@ void value_CONTENT_TYPE(struct TCPRECORD *sess, struct NetFrame *frame, const un
 	}
 }
 
+void value_SERVER(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length, void *vreq)
+{
+	struct HTTPRESPONSE *req = (struct HTTPRESPONSE *)vreq;
+	value_DEFAULT(sess, frame, px, length, req);
+	if (req->value_state) {
+		const char *buf = (const char*)req->tmp;
+		unsigned buf_length = req->tmp_length;
+
+		record_listening_port(
+			sess->eng->ferret,
+			frame->ipttl,
+			frame->ipver, frame->src_ipv4, frame->src_ipv6,
+			LISTENING_ON_TCP,
+			frame->src_port,
+			"HTTP",
+			(const char *)buf,
+			buf_length);
+	}
+}
+
 struct VALUEPARSELIST  response_header_parsers[] = {
 	{"CONTENT-LENGTH", value_CONTENT_LENGTH},
 	{"CONTENT-TYPE", value_CONTENT_TYPE},
 	{"SET-COOKIE", value_SET_COOKIE},
+	{"SERVER", value_SERVER},
 	{0,0}
 };
 
@@ -366,7 +388,7 @@ Server: lighttpd/1.4.11.1*/
 	case HTTP_START:
 		memset(req, 0, sizeof(*req));
 		parse->state = HTTP_VERSION_PRE;
-		break;
+		
 	case HTTP_VERSION_PRE:
 		/* We are in the state before the HTTP header. This may be the 
 		 * first state of the connection, or the state after the previous
@@ -375,30 +397,47 @@ Server: lighttpd/1.4.11.1*/
 			offset++;
 		if (offset<length)
 			parse->state = HTTP_VERSION;
-		break;
+		else
+			break;
 	case HTTP_VERSION:
 		copy_until_space(req->version, sizeof(req->version), &req->version_length, px, length, &offset);
 		if (offset<length && isspace(px[offset]&0xFF))
 			parse->state = HTTP_VERSION_AFTER;
-		break;
+		else
+			break;
 	case HTTP_VERSION_AFTER:
 		while (offset<length && isspace(px[offset]&0xFF) && px[offset] != '\n')
 			offset++;
-		if (offset<length)
+		if (offset<length) {
+			req->return_code = 0;
 			parse->state = HTTP_RETURNCODE;
-		break;
+		} else
+			break;
 	case HTTP_RETURNCODE:
 		while (offset<length && isdigit(px[offset])) {
-			req->return_code = px[offset]-'0';
+			req->return_code = req->return_code * 10 + px[offset]-'0';
 			offset++;
 		}
 		if (offset<length) {
+			/* REPORT: listening port */
+			record_listening_port(
+				sess->eng->ferret,
+				frame->ipttl,
+				frame->ipver, frame->src_ipv4, frame->src_ipv6,
+				LISTENING_ON_TCP,
+				frame->src_port,
+				"HTTP",
+				0,
+				0);
 			if (isspace(px[offset]&0xFF))
 				parse->state = HTTP_RETURNCODE_AFTER;
-			else
+			else {
 				parse->state = HTTP_RETURNCODE_NONDIGIT;
+				break;
+			}
 		}
-		break;
+		else
+			break;
 	case HTTP_RETURNCODE_AFTER:
 	case HTTP_RETURNCODE_NONDIGIT:
 		parse->state = HTTP_SKIP_TO_EOL;

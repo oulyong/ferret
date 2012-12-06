@@ -90,6 +90,7 @@ struct TCPRECORD;
 struct NetFrame
 {
 	unsigned ipver;
+	unsigned ipttl;
 	unsigned is_data; /* On WiFi, if we have data, and true everywhere else */
 	unsigned layer2_protocol;
 	unsigned layer3_protocol;

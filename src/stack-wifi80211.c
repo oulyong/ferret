@@ -1112,8 +1112,10 @@ void process_wifi_frame(struct Ferret *ferret, struct NetFrame *frame, const uns
 		if (px[1] & 0x40) {
 			unsigned char tmp_packet[2048];
 			unsigned tmp_length=0;
-			if (test_wep_decrypt(ferret, frame, px, length, tmp_packet, &tmp_length))
-				process_wifi_data(ferret, frame, tmp_packet, tmp_length);
+			if (ferret->cfg.is_wifi_slow) {
+				if (test_wep_decrypt(ferret, frame, px, length, tmp_packet, &tmp_length))
+					process_wifi_data(ferret, frame, tmp_packet, tmp_length);
+			}
 			ferret->statistics.encrypted_data++;
 			break;
 		} else {

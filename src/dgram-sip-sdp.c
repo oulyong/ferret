@@ -7,6 +7,8 @@
 #include <ctype.h>
 
 
+/****************************************************************************
+ ****************************************************************************/
 static int
 sdp_next_header(const char name, const unsigned char *px, unsigned length, struct Field *field, unsigned index)
 {
@@ -68,6 +70,8 @@ sdp_next_header(const char name, const unsigned char *px, unsigned length, struc
 	return 0;
 }
 
+/****************************************************************************
+ ****************************************************************************/
 int
 field_next(const struct Field *field, unsigned *r_offset, struct Field *tok)
 {
@@ -95,7 +99,9 @@ field_next(const struct Field *field, unsigned *r_offset, struct Field *tok)
 }
 
 
-int
+/****************************************************************************
+ ****************************************************************************/
+static int
 field_has_prefix(const char *prefix, const struct Field *field, unsigned offset)
 {
 	unsigned i;
@@ -109,7 +115,9 @@ field_has_prefix(const char *prefix, const struct Field *field, unsigned offset)
 	return 1;
 }
 
-int
+/****************************************************************************
+ ****************************************************************************/
+static int
 field_next_nonnumber(const struct Field *field, unsigned *offset, struct Field *tok)
 {
 	tok->px = field->px + *offset;
@@ -122,6 +130,8 @@ field_next_nonnumber(const struct Field *field, unsigned *offset, struct Field *
 	return 1;
 }
 
+/****************************************************************************
+ ****************************************************************************/
 void
 register_rtpavp(struct Ferret *ferret, unsigned connection_ip_address, const struct Field *port_field, unsigned time_secs)
 {
@@ -154,6 +164,8 @@ register_rtpavp(struct Ferret *ferret, unsigned connection_ip_address, const str
 	}
 }
 
+/****************************************************************************
+ ****************************************************************************/
 void
 parse_sdp_invite_request(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
