@@ -13,7 +13,7 @@ extern "C" {
 
 struct PARSE {
 	unsigned state;
-	size_t remaining;
+	unsigned remaining;
 };
 
 struct HTTPREQUEST;
@@ -153,13 +153,51 @@ void strfrag_force_backing_store(struct StringReassembler *strfrag);
  * in the packet, then we just widen the reference in the packet. Otherwise
  * we malloc() a backing-store and copy the strings into it.
  */
-void strfrag_append(struct StringReassembler *strfrag, const unsigned char *px, unsigned length);
+void strfrag_append(struct StringReassembler *strfrag, const unsigned char *px, size_t length);
 void strfrag_finish(struct StringReassembler *strfrag);
 void strfrag_init(struct StringReassembler *strfrag);
 void strfrag_xfer(struct StringReassembler *dst, struct StringReassembler *src);
 #define strfrag_clear strfrag_init
 
 
+struct TCP_STREAM {
+	/** The "next expected sequence number" along this TCP connection. */
+	unsigned seqno;
+
+	/** The last ACK we got from the other side */
+	unsigned ackno;
+
+	struct TCP_segment *segments;
+
+	
+	/** The function that will parse incoming data segments on this
+		* TCP stream. These parsers assume that data can possibly arrive
+		* one byte at a time. Therefore, no underlying TCP reassembly needs
+		* to be done, although segments will be re-ordered by the system.
+		*/
+	FERRET_PARSER parser;
+
+	struct PARSE parse;
+	//unsigned app_state;
+	//unsigned app_length_remaining;
+
+	/** This is a 'string reassembler' for doing occasional reassembly
+		* of buffers in TCP protocols that cross protocol boundaries. We
+		* have 2 such strings so we can accomodate <name=value> pairs. If
+		* protocol needs a third string, it will have to allocate memory */
+	struct StringReassembler str[2];
+
+	union {
+		struct SMTPREQUEST smtpreq;
+		struct HTTPREQUEST httpreq;
+		struct HTTPRESPONSE httprsp;
+		struct AIMPARSER aim;
+		struct POP3REQUEST pop3req;
+		struct POP3RESPONSE pop3rsp;
+		struct MSNREQUEST msnreq;
+		struct YMSG ymsg;
+	} app;
+};
 
 
 /**
@@ -174,59 +212,18 @@ struct TCPRECORD {
 	unsigned short tcp_src;
 	unsigned short tcp_dst;
 
-	/** The "next expected sequence number" along this TCP connection. */
-	unsigned seqno;
-
-	time_t last_activity;
-
-	struct TCP_segment *segments;
-
 	struct TCPRECORD *next;
 	struct TCPRECORD *prev;
-	
-	/** The function that will parse incoming data segments on this
-	 * TCP stream. These parsers assume that data can possibly arrive
-	 * one byte at a time. Therefore, no underlying TCP reassembly needs
-	 * to be done, although segments will be re-ordered by the system.
-	 */
-	FERRET_PARSER parser;
-
-	/** The TCP connection going in the reverse direction, if there is
-	 * any. In some cases, we won't see the reverse connection, such
-	 * as on networks where the reverse direction goes out a different
-	 * network path to the Internet. */
-	struct TCPRECORD *reverse;
-	struct PARSE parse;
+	time_t last_activity;
 	struct FerretEngine *eng;
-
-	/** This is a 'string reassembler' for doing occasional reassembly
-	 * of buffers in TCP protocols that cross protocol boundaries. We
-	 * have 2 such strings so we can accomodate <name=value> pairs. If
-	 * protocol needs a third string, it will have to allocate memory */
-	struct StringReassembler str[2];
-
-	union {
-		struct SMTPREQUEST smtpreq;
-		struct HTTPREQUEST httpreq;
-		struct HTTPRESPONSE httprsp;
-		struct AIMPARSER aim;
-		struct POP3REQUEST pop3req;
-		struct POP3RESPONSE pop3rsp;
-		struct MSNREQUEST msnreq;
-		struct YMSG ymsg;
-	} layer7;
-
-	/**
-	 * A single state variable for holding private state information
-	 * for the layer 7 protocol.
-	 */
-	unsigned layer7_state;
-	unsigned layer7_length_remaining;
 
 	/**
 	 * This points into the housekeeping list
 	 */
 	struct HousekeepingEntry housekeeping_entry;
+
+	struct TCP_STREAM to_server;
+	struct TCP_STREAM from_server;
 
 	unsigned a3;
 };

@@ -46,13 +46,13 @@ void smtp_copy(unsigned char *dst, const void *v_src, unsigned src_length)
 		dst[dst_length-1] = '\0';
 }
 
-void process_simple_smtp_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
+void process_simple_smtp_response(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
 	frame->layer7_protocol = LAYER7_SMTP;
 	UNUSEDPARM(sess);UNUSEDPARM(frame);UNUSEDPARM(px);UNUSEDPARM(length);
 }
 
-void process_simple_smtp_data(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
+void process_simple_smtp_data(struct TCPRECORD *sess, struct TCP_STREAM *to_server, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
 	struct FerretEngine *eng = sess->eng;
 	struct Ferret *ferret = eng->ferret;
@@ -72,12 +72,12 @@ void process_simple_smtp_data(struct TCPRECORD *sess, struct NetFrame *frame, co
 		/* Handle end-of-email '.' issue */
 		if (offset<length && px[offset] == '.') {
 			if (offset+1<length && px[offset] == '\n' && offset+2<length && px[offset] == '\r' && px[offset+1] == '\n') {
-				sess->layer7.smtpreq.is_body = 0;
-				sess->layer7.smtpreq.is_data = 0;
+				to_server->app.smtpreq.is_body = 0;
+				to_server->app.smtpreq.is_data = 0;
 				return;
 			}
 		}
-		if (sess->layer7.smtpreq.is_body) {
+		if (to_server->app.smtpreq.is_body) {
 			while (offset<length && px[offset] != '\n')
 				offset++;
 			if (offset<length && px[offset] == '\n')
@@ -94,7 +94,7 @@ void process_simple_smtp_data(struct TCPRECORD *sess, struct NetFrame *frame, co
 			offset++;
 		command_length = offset-command;
 		if (command_length == 0) {
-			sess->layer7.smtpreq.is_body = 1;
+			to_server->app.smtpreq.is_body = 1;
 			continue;
 		}
 
@@ -112,7 +112,7 @@ void process_simple_smtp_data(struct TCPRECORD *sess, struct NetFrame *frame, co
 
 		parm = offset;
 		if ((offset<length && px[offset] == '\n') || (offset+1<length && px[offset] == '\r' && px[offset+1] == '\n')) {
-			sess->layer7.smtpreq.is_body = 1;
+			to_server->app.smtpreq.is_body = 1;
 			return;
 		}
 again:
@@ -134,7 +134,7 @@ again:
 				JOT_DST("server", frame),
 				0);
 		if (is_command("subject", px+command, command_length)) {
-			smtp_copy(sess->layer7.smtpreq.subject, px+parm, parm_length);
+			smtp_copy(to_server->app.smtpreq.subject, px+parm, parm_length);
 		}
 		if (is_command("X-Mailer", px+command, command_length)) {
 			JOTDOWN(ferret,
@@ -174,7 +174,7 @@ void strip_address(const char **r_parm, unsigned *r_length)
 }
 
 
-void process_simple_smtp_request(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
+void process_simple_smtp_request(struct TCPRECORD *sess, struct TCP_STREAM *to_server, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
 	struct FerretEngine *eng = sess->eng;
 	struct Ferret *ferret = eng->ferret;
@@ -191,8 +191,8 @@ void process_simple_smtp_request(struct TCPRECORD *sess, struct NetFrame *frame,
 
 	frame->layer7_protocol = LAYER7_SMTP;
 
-	if (sess->layer7.smtpreq.is_data) {
-		process_simple_smtp_data(sess, frame, px, length);
+	if (to_server->app.smtpreq.is_data) {
+		process_simple_smtp_data(sess, to_server, frame, px, length);
 		return;
 	}
 
@@ -252,7 +252,7 @@ again:
 		strip_address(&parm, &parm_length);
 
 		if (sess)
-			smtp_copy(sess->layer7.smtpreq.from, parm, parm_length);
+			smtp_copy(to_server->app.smtpreq.from, parm, parm_length);
 
 		JOTDOWN(ferret,
 			JOT_SRC("IP", frame),
@@ -263,7 +263,7 @@ again:
 		strip_address(&parm, &parm_length);
 
 		if (sess)
-			smtp_copy(sess->layer7.smtpreq.to, parm, parm_length);
+			smtp_copy(to_server->app.smtpreq.to, parm, parm_length);
 		JOTDOWN(ferret,
 			JOT_SRC("IP", frame),
 			JOT_PRINT("friend",			   parm, parm_length),
@@ -271,10 +271,10 @@ again:
 	}
 
 	if (stricmp(command, "DATA")==0 && sess) {
-		sess->layer7.smtpreq.is_data = 1;
+		to_server->app.smtpreq.is_data = 1;
 	}
 	if (stricmp(command, "RSET")==0 && sess) {
-		sess->layer7.smtpreq.is_data = 0;
+		to_server->app.smtpreq.is_data = 0;
 	}
 
 

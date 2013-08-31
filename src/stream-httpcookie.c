@@ -45,7 +45,8 @@ contains(const void *vsubstr, const void *vvalue, unsigned value_length)
  */
 void parse_http_cookie(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *name, unsigned name_length, const unsigned char *value, unsigned value_length)
 {
-	struct HTTPREQUEST *req = &sess->layer7.httpreq;
+	struct TCP_STREAM *stream = &sess->to_server;
+	struct HTTPREQUEST *req = &stream->app.httpreq;
 	unsigned char *dec;
 	unsigned dec_length = value_length;
 

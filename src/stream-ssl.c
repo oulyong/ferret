@@ -17,24 +17,16 @@
 
 
 
-void parse_ssl_request(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
+void parse_ssl_request(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
-	struct PARSE *parse = &sess->parse;
-	struct HTTPREQUEST *req = &sess->layer7.httpreq;
-
-	UNUSEDPARM(req); UNUSEDPARM(parse);
-
+	UNUSEDPARM(px); UNUSEDPARM(length);
 	sess->layer7_proto = LAYER7_SSL;
 	frame->layer7_protocol = LAYER7_SSL;
 }
 
-void parse_ssl_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
+void parse_ssl_response(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
-	struct PARSE *parse = &sess->parse;
-	struct HTTPREQUEST *req = &sess->layer7.httpreq;
-
-	UNUSEDPARM(req); UNUSEDPARM(parse);
-
+	UNUSEDPARM(px); UNUSEDPARM(length);
 	sess->layer7_proto = LAYER7_SSL;
 	frame->layer7_protocol = LAYER7_SSL;
 }

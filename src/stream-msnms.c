@@ -217,17 +217,17 @@ static void msg_content_type(struct StringReassembler *data, const unsigned char
 	}
 }
 
-void msg_ignore(struct TCPRECORD *sess, struct NetFrame *frame, struct StringReassembler *data)
+void msg_ignore(struct TCP_STREAM *stream, struct NetFrame *frame, struct StringReassembler *data)
 {
 	UNUSEDPARM(data);
 	UNUSEDPARM(frame);
-	UNUSEDPARM(sess);
+	UNUSEDPARM(stream);
 }
-void msg_text_secway(struct TCPRECORD *sess, struct NetFrame *frame, struct StringReassembler *data)
+void msg_text_secway(struct TCP_STREAM *stream, struct NetFrame *frame, struct StringReassembler *data)
 {
 	UNUSEDPARM(data);
 	UNUSEDPARM(frame);
-	UNUSEDPARM(sess);
+	UNUSEDPARM(stream);
 	/*
 	MSG d95_clj@hotmail.com Carl 290
 	MIME-Version: 1.0
@@ -241,7 +241,7 @@ void msg_text_secway(struct TCPRECORD *sess, struct NetFrame *frame, struct Stri
 	*/
 
 }
-void msg_msnmsgrp2p(struct TCPRECORD *sess, struct NetFrame *frame, struct StringReassembler *data)
+void msg_msnmsgrp2p(struct TCP_STREAM *stream, struct NetFrame *frame, struct StringReassembler *data)
 {
 	const unsigned char *px = data->the_string;
 	unsigned offset=0;
@@ -258,7 +258,6 @@ void msg_msnmsgrp2p(struct TCPRECORD *sess, struct NetFrame *frame, struct Strin
 		uint64_t ack_size;
 	} p2pinfo;
 
-	UNUSEDPARM(sess);
 
 	offset = msg_header_length(data);
 
@@ -282,7 +281,7 @@ void msg_msnmsgrp2p(struct TCPRECORD *sess, struct NetFrame *frame, struct Strin
 	//printf(".");
 
 }
-void msg_clientcaps(struct TCPRECORD *sess, struct NetFrame *frame, struct StringReassembler *data)
+void msg_clientcaps(struct TCP_STREAM *stream, struct NetFrame *frame, struct StringReassembler *data)
 {
 	/*
 MSG 4 U 98
@@ -294,13 +293,11 @@ Chat-Logging: Y
 */
 	UNUSEDPARM(data);
 	UNUSEDPARM(frame);
-	UNUSEDPARM(sess);
 }
-void msg_msmsgsprofile(struct TCPRECORD *sess, struct NetFrame *frame, struct StringReassembler *data)
+void msg_msmsgsprofile(struct TCP_STREAM *stream, struct NetFrame *frame, struct StringReassembler *data)
 {
 	UNUSEDPARM(data);
 	UNUSEDPARM(frame);
-	UNUSEDPARM(sess);
 /*
 MSG Hotmail Hotmail 515
 MIME-Version: 1.0
@@ -327,32 +324,31 @@ ClientPort: 65497
 MPOPEnabled: 0
 */
 }
-void msg_text_plain(struct TCPRECORD *sess, struct NetFrame *frame, struct StringReassembler *data)
+static void
+msg_text_plain(struct TCP_STREAM *stream, struct NetFrame *frame, struct StringReassembler *data)
 {
+	struct Ferret *jot = frame->sess->eng->ferret;
 	const unsigned char *px = data->the_string;
 	unsigned length = data->length;
 	unsigned header_length = msg_header_length(data);
 
-	JOTDOWN(sess->eng->ferret,
+	JOTDOWN(jot,
 		JOT_SZ("CHAT",			"Message"),
-		JOT_SZ("From",			sess->layer7.msnreq.username),
-		JOT_SZ("To",			sess->layer7.msnreq.toname),
+		JOT_SZ("From",			stream->app.msnreq.username),
+		JOT_SZ("To",			stream->app.msnreq.toname),
 		JOT_PRINT("Message",	px+header_length, length-header_length),
 		JOT_SZ("Protocol",		"MSN-MSGR"),
 		0);
 
 	UNUSEDPARM(data);
-	UNUSEDPARM(frame);
-	UNUSEDPARM(sess);
 }
 
-void msg_unknown(struct TCPRECORD *sess, struct NetFrame *frame, struct StringReassembler *data)
+void msg_unknown(struct TCP_STREAM *stream, struct NetFrame *frame, struct StringReassembler *data)
 {
 	const unsigned char *content_type;
 	unsigned content_type_length;
 
 	msg_content_type(data, &content_type, &content_type_length);
-	UNUSEDPARM(sess);
 
 	FRAMERR(frame, "msn-ms: unknown message from client: %.*s\n", content_type_length, content_type);
 }
@@ -360,7 +356,7 @@ void msg_unknown(struct TCPRECORD *sess, struct NetFrame *frame, struct StringRe
 
 struct MsgContentTypes {
 	const char *content_type;
-	void (*pfn_handler)(struct TCPRECORD *sess, struct NetFrame *frame, struct StringReassembler *data);
+	void (*pfn_handler)(struct TCP_STREAM *stream, struct NetFrame *frame, struct StringReassembler *data);
 } msgcontenttypes[] = {
 	{"application/x-msnmsgrp2p", msg_msnmsgrp2p},
 	{"text/plain", msg_text_plain},
@@ -387,13 +383,14 @@ struct MsgContentTypes {
  * Handle a reassembled server command
  */
 void msnms_server_command(
-		struct TCPRECORD *sess, 
+		struct TCPRECORD *sess,
 		struct NetFrame *frame, 
 		struct StringReassembler *command, 
 		struct StringReassembler *data)
 {
-	struct FerretEngine *eng = sess->eng;
-	struct Ferret *ferret = eng->ferret;
+	struct TCP_STREAM *stream = &sess->to_server;
+	struct TCP_STREAM *stream_reverse = &sess->from_server;
+	struct Ferret *ferret = frame->sess->eng->ferret;
 	struct Atom cmd;
 	unsigned offset = 0;
 	struct Atom atom;
@@ -447,19 +444,19 @@ void msnms_server_command(
 			case X_CMD('W', 'W', 'E', '\0'): /* WWE */
 			case X_CMD('P', 'H', 'H', '\0'): /* PHH - Home phone number */
 				JOTDOWN(ferret,
-					JOT_SZ("ID-ALIAS", sess->layer7.msnreq.username),
+					JOT_SZ("ID-ALIAS", stream->app.msnreq.username),
 					JOT_URLENC("Home phone", num.px+num.offset, num.len),
 					0);
 				break;
 			case X_CMD('P', 'H', 'W', '\0'): /* PHW - Work phone number */
 				JOTDOWN(ferret,
-					JOT_SZ("ID-ALIAS", sess->layer7.msnreq.username),
+					JOT_SZ("ID-ALIAS", stream->app.msnreq.username),
 					JOT_URLENC("Work phone", num.px+num.offset, num.len),
 					0);
 				break;
 			case X_CMD('P', 'H', 'M', '\0'): /* PHM - Mobile phone number */
 				JOTDOWN(ferret,
-					JOT_SZ("ID-ALIAS", sess->layer7.msnreq.username),
+					JOT_SZ("ID-ALIAS", stream->app.msnreq.username),
 					JOT_URLENC("Mobile phone", num.px+num.offset, num.len),
 					0);
 				break;
@@ -513,9 +510,9 @@ void msnms_server_command(
 			}
 
 			atom = atom_next(command, &offset);
-			JOTDOWN(sess->eng->ferret,
+			JOTDOWN(ferret,
 				JOT_SZ("CHAT",			"Buddy"),
-				JOT_SZ("Buddy",			sess->layer7.msnreq.toname),
+				JOT_SZ("Buddy",			stream->app.msnreq.toname),
 				JOT_PRINT("Buddy",		atom.px+atom.offset, atom.len),
 				JOT_SZ("Protocol",		"MSN-MSGR"),
 				0);
@@ -530,24 +527,25 @@ void msnms_server_command(
 
 			alias = atom_next(command, &offset);
 
-			strncpy_s(	(char*)sess->layer7.msnreq.username, sizeof(sess->layer7.msnreq.username),
+			strncpy_s(	(char*)stream->app.msnreq.username, sizeof(stream->app.msnreq.username),
 						(char*)atom.px+atom.offset, atom.len);
-			if (sess->reverse && sess->reverse->layer7.msnreq.username[0])
-				strcpy_s((char*)sess->layer7.msnreq.toname, sizeof(sess->layer7.msnreq.username),
-							(const char*)sess->reverse->layer7.msnreq.username);
+			
+			if (stream_reverse->app.msnreq.username[0])
+				strcpy_s((char*)stream->app.msnreq.toname, sizeof(stream->app.msnreq.username),
+							(const char*)stream_reverse->app.msnreq.username);
 
 
 			JOTDOWN(sess->eng->ferret,
 				JOT_SZ("CHAT",			"Buddy"),\
 				JOT_PRINT("Buddy",		atom.px+atom.offset, atom.len),
-				JOT_SZ("Buddy",			sess->layer7.msnreq.toname),
+				JOT_SZ("Buddy",			stream->app.msnreq.toname),
 				JOT_SZ("Protocol",		"MSN-MSGR"),
 				0);
 
 			JOTDOWN(ferret,
 				JOT_SZ("CHAT",			"Call"),
-				JOT_SZ("From",			sess->layer7.msnreq.username),
-				JOT_SZ("To",			sess->layer7.msnreq.toname),
+				JOT_SZ("From",			stream->app.msnreq.username),
+				JOT_SZ("To",			stream->app.msnreq.toname),
 				JOT_SZ("Protocol",		"MSN-MSGR"),
 				0);
 
@@ -563,20 +561,20 @@ void msnms_server_command(
 			atom = atom_next(command, &offset);
 			alias = atom_next(command, &offset);
 
-			strncpy_s(	(char*)sess->layer7.msnreq.username, sizeof(sess->layer7.msnreq.username),
+			strncpy_s(	(char*)stream->app.msnreq.username, sizeof(stream->app.msnreq.username),
 						(char*)atom.px+atom.offset, atom.len);
 
 			JOTDOWN(sess->eng->ferret,
 				JOT_SZ("CHAT",			"Buddy"),\
-				JOT_SZ("Buddy",			sess->layer7.msnreq.toname),
+				JOT_SZ("Buddy",			stream->app.msnreq.toname),
 				JOT_PRINT("Buddy",		atom.px+atom.offset, atom.len),
 				JOT_SZ("Protocol",		"MSN-MSGR"),
 				0);
 
 			JOTDOWN(ferret,
 				JOT_SZ("CHAT",			"Call"),
-				JOT_SZ("From",			sess->layer7.msnreq.toname),
-				JOT_SZ("To",			sess->layer7.msnreq.username),
+				JOT_SZ("From",			stream->app.msnreq.toname),
+				JOT_SZ("To",			stream->app.msnreq.username),
 				JOT_SZ("Protocol",		"MSN-MSGR"),
 				0);
 
@@ -613,12 +611,12 @@ void msnms_server_command(
 		} else {
 			JOTDOWN(sess->eng->ferret,
 				JOT_SZ("CHAT",			"Buddy"),
-				JOT_SZ("Buddy",			sess->layer7.msnreq.toname),
+				JOT_SZ("Buddy",			stream->app.msnreq.toname),
 				JOT_PRINT("Buddy",		atom.px+atom.offset, atom.len),
 				JOT_SZ("Protocol",		"MSN-MSGR"),
 				0);
 			strncpy_s(	
-				(char*)sess->layer7.msnreq.username, sizeof(sess->layer7.msnreq.username),
+				(char*)stream->app.msnreq.username, sizeof(stream->app.msnreq.username),
 				(char*)atom.px+atom.offset, atom.len);
 		}
 		break;
@@ -636,7 +634,7 @@ void msnms_server_command(
 				if (MATCHES(msgcontenttypes[i].content_type, content_type, content_type_length))
 					break;
 			}
-			msgcontenttypes[i].pfn_handler(sess,frame,data);
+			msgcontenttypes[i].pfn_handler(stream,frame,data);
 		}
 		break;
 	case X_CMD('N', 'L', 'N', '\0'): /* NLN - Presence info from friends */
@@ -655,7 +653,7 @@ void msnms_server_command(
 					JOT_PRINT("buddy",	 	name.px+name.offset, name.len),
 					JOT_PRINT("state",	 	status.px+status.offset, status.len),
 					0);
-				if (sess->layer7.msnreq.username[0]) {
+				if (stream->app.msnreq.username[0]) {
 					FRAMERR(frame, "%s: unimplemented", "MSN-MS");
 				}
 				break;
@@ -698,24 +696,24 @@ void msnms_server_command(
 				break;
 			case X_CMD('P', 'H', 'H', '\0'): /* PHH - Home phone number */
 				JOTDOWN(ferret,
-					JOT_SZ("ID-ALIAS", sess->layer7.msnreq.toname),
+					JOT_SZ("ID-ALIAS", stream->app.msnreq.toname),
 					JOT_URLENC("Home phone", num.px+num.offset, num.len),
 					0);
 				break;
 			case X_CMD('P', 'H', 'W', '\0'): /* PHW - Work phone number */
 				JOTDOWN(ferret,
-					JOT_SZ("ID-ALIAS", sess->layer7.msnreq.toname),
+					JOT_SZ("ID-ALIAS", stream->app.msnreq.toname),
 					JOT_URLENC("Work phone", num.px+num.offset, num.len),
 					0);
 				break;
 			case X_CMD('P', 'H', 'M', '\0'): /* PHM - Mobile phone number */
 				JOTDOWN(ferret,
-					JOT_SZ("ID-ALIAS", sess->layer7.msnreq.toname),
+					JOT_SZ("ID-ALIAS", stream->app.msnreq.toname),
 					JOT_URLENC("Mobile phone", num.px+num.offset, num.len),
 					0);
 			case X_CMD('M', 'F', 'N', '\0'): /* MFN - My Friendly Name */
 				JOTDOWN(ferret,
-					JOT_SZ("ID-ALIAS", sess->layer7.msnreq.toname),
+					JOT_SZ("ID-ALIAS", stream->app.msnreq.toname),
 					JOT_URLENC("Friendly Name", num.px+num.offset, num.len),
 					0);
 				JOTDOWN(ferret,
@@ -785,7 +783,7 @@ void msnms_server_command(
 				alias = atom_next(command, &offset);
 
 				strncpy_s(	
-					(char*)sess->layer7.msnreq.toname, sizeof(sess->layer7.msnreq.toname),
+					(char*)stream->app.msnreq.toname, sizeof(stream->app.msnreq.toname),
 					(char*)username.px+username.offset, username.len);
 
 				JOTDOWN(ferret,
@@ -858,6 +856,8 @@ void msnms_client_command(
 		struct StringReassembler *command, 
 		struct StringReassembler *data)
 {
+	struct TCP_STREAM *stream = &sess->to_server;
+	struct TCP_STREAM *stream_reverse = &sess->from_server;
 	struct FerretEngine *eng = sess->eng;
 	struct Ferret *ferret = eng->ferret;
 	struct Atom cmd;
@@ -891,7 +891,7 @@ void msnms_client_command(
 			/*unsigned trid = atom_to_number(atom);*/
 			
 			atom = atom_next(command, &offset);
-			strncpy_s(	(char*)sess->layer7.msnreq.username, sizeof(sess->layer7.msnreq.username),
+			strncpy_s(	(char*)stream->app.msnreq.username, sizeof(stream->app.msnreq.username),
 						(char*)atom.px+atom.offset, atom.len);
 
 
@@ -920,12 +920,12 @@ void msnms_client_command(
 			FRAMERR(frame, "%s: unknown commanded from client: %.*s\n", "MSN-MS", cmd.len, cmd.px);
 		else {
 			atom = atom_next(command, &offset);
-			strncpy_s(	(char*)sess->layer7.msnreq.toname, sizeof(sess->layer7.msnreq.toname),
+			strncpy_s(	(char*)stream->app.msnreq.toname, sizeof(stream->app.msnreq.toname),
 						(char*)atom.px+atom.offset, atom.len);
 
 			JOTDOWN(ferret,
 				JOT_SZ("CHAT",			"Call"),
-				JOT_SZ("From",			sess->layer7.msnreq.username),
+				JOT_SZ("From",			stream->app.msnreq.username),
 				JOT_PRINT("To",			atom.px+atom.offset, atom.len),
 				JOT_SZ("Protocol",		"MSN-MSGR"),
 				0);
@@ -1022,7 +1022,7 @@ void msnms_client_command(
 				if (MATCHES(msgcontenttypes[i].content_type, content_type, content_type_length))
 					break;
 			}
-			msgcontenttypes[i].pfn_handler(sess,frame,data);
+			msgcontenttypes[i].pfn_handler(stream,frame,data);
 		}
 		break;
 	case X_CMD('O', 'U', 'T', '\0'): /* OUT - Logging out, closing TCP connection */
@@ -1088,7 +1088,7 @@ void msnms_client_command(
 					} else
 						; //FRAMERR(frame, "%s: unknown commanded from client: %.*s\n", "MSN-MS", cmd.len, cmd.px);
 				} else {
-					strncpy_s(	(char*)sess->layer7.msnreq.username, sizeof(sess->layer7.msnreq.username),
+					strncpy_s(	(char*)stream->app.msnreq.username, sizeof(stream->app.msnreq.username),
 								(char*)atom.px+atom.offset, atom.len);
 
 
@@ -1162,12 +1162,14 @@ void msnms_client_command(
 }
 
 
-void process_msnms_server_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
+void 
+process_msnms_server_response(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
+	struct TCP_STREAM *stream_reverse = &sess->to_server;
 	unsigned offset=0;
 	unsigned eol=0;
-	struct StringReassembler *string_command = sess->str+0;
-	struct StringReassembler *string_data = sess->str+1;
+	struct StringReassembler *string_command = stream->str+0;
+	struct StringReassembler *string_data = stream->str+1;
 
 	/* IF CLOSING CONNECTION */
 	if (px == NULL) {
@@ -1177,12 +1179,12 @@ void process_msnms_server_response(struct TCPRECORD *sess, struct NetFrame *fram
 
 	/* Run a state-machine reassembling the commands */
 	while (offset < length)
-	switch (sess->layer7_state) {
+	switch (stream->parse.state) {
 	case 0: 
 		/* Start processing command line */
 		strfrag_init(string_command);
 		strfrag_init(string_data);
-		sess->layer7_state++;
+		stream->parse.state++;
 		continue;
 
 	case 1: 
@@ -1204,44 +1206,45 @@ void process_msnms_server_response(struct TCPRECORD *sess, struct NetFrame *fram
 
 		/* If the command has additional data, then start grabbing that
 		 * data as well. */
-		sess->layer7_length_remaining = msn_more_response_length(string_command);
-		if (sess->layer7_length_remaining == 0) {
+		stream->parse.remaining = msn_more_response_length(string_command);
+		if (stream->parse.remaining == 0) {
 			msnms_server_command(sess, frame, string_command, string_data);
 			strfrag_init(string_command);
 			strfrag_init(string_data);
-			sess->layer7_state = 0;
+			stream->parse.state = 0;
 		} else {
-			sess->layer7_state = 2;
+			stream->parse.state = 2;
 		}
 		break;
 	case 2: /* process value, if any */
-		if (sess->layer7_length_remaining) {
+		if (stream->parse.remaining) {
 			unsigned len = length-offset;
-			if (len > sess->layer7_length_remaining)
-				len = sess->layer7_length_remaining;
+			if (len > stream->parse.remaining)
+				len = stream->parse.remaining;
 			strfrag_append(string_data, px+offset, len);
-			sess->layer7_length_remaining -= len;
+			stream->parse.remaining -= len;
 			offset += len;
 
-			if (sess->layer7_length_remaining == 0) {
+			if (stream->parse.remaining == 0) {
 				/* Handle the command */
 				msnms_server_command(sess, frame, string_command, string_data);
 				strfrag_init(string_command);
 				strfrag_init(string_data);
-				sess->layer7_state = 0;
+				stream->parse.state = 0;
 			}
 		} else
-			sess->layer7_state = 0;
+			stream->parse.state = 0;
 		break;
 	}
 }
 
-void process_simple_msnms_client_request(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
+void
+process_simple_msnms_client_request(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
 	unsigned offset=0;
 	unsigned eol=0;
-	struct StringReassembler *string_command = sess->str+0;
-	struct StringReassembler *string_data = sess->str+1;
+	struct StringReassembler *string_command = stream->str+0;
+	struct StringReassembler *string_data = stream->str+1;
 
 	/* IF CLOSING CONNECTION */
 	if (px == NULL) {
@@ -1252,12 +1255,12 @@ void process_simple_msnms_client_request(struct TCPRECORD *sess, struct NetFrame
 
 	/* Run a state-machine reassembling the commands */
 	while (offset < length)
-	switch (sess->layer7_state) {
+	switch (stream->parse.state) {
 	case 0: 
 		/* Start processing command line */
 		strfrag_init(string_command);
 		strfrag_init(string_data);
-		sess->layer7_state++;
+		stream->parse.state++;
 		continue;
 
 	case 1: 
@@ -1279,34 +1282,34 @@ void process_simple_msnms_client_request(struct TCPRECORD *sess, struct NetFrame
 
 		/* If the command has additional data, then start grabbing that
 		 * data as well. */
-		sess->layer7_length_remaining = msn_more_request_length(string_command);
-		if (sess->layer7_length_remaining == 0) {
+		stream->parse.remaining = msn_more_request_length(string_command);
+		if (stream->parse.remaining == 0) {
 			msnms_client_command(sess, frame, string_command, string_data);
 			strfrag_init(string_command);
 			strfrag_init(string_data);
-			sess->layer7_state = 0;
+			stream->parse.state = 0;
 		} else {
-			sess->layer7_state = 2;
+			stream->parse.state = 2;
 		}
 		break;
 	case 2: /* process value, if any */
-		if (sess->layer7_length_remaining) {
+		if (stream->parse.remaining) {
 			unsigned len = length-offset;
-			if (len > sess->layer7_length_remaining)
-				len = sess->layer7_length_remaining;
+			if (len > stream->parse.remaining)
+				len = stream->parse.remaining;
 			strfrag_append(string_data, px+offset, len);
-			sess->layer7_length_remaining -= len;
+			stream->parse.remaining -= len;
 			offset += len;
 
-			if (sess->layer7_length_remaining == 0) {
+			if (stream->parse.remaining == 0) {
 				/* Handle the command */
 				msnms_client_command(sess, frame, string_command, string_data);
 				strfrag_init(string_command);
 				strfrag_init(string_data);
-				sess->layer7_state = 0;
+				stream->parse.state = 0;
 			}
 		} else
-			sess->layer7_state = 0;
+			stream->parse.state = 0;
 		break;
 	}
 }

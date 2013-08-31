@@ -19,8 +19,9 @@
 
 void parse_ftp_request(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
-	struct PARSE *parse = &sess->parse;
-	struct HTTPREQUEST *req = &sess->layer7.httpreq;
+	struct TCP_STREAM *stream = &sess->to_server;
+	struct PARSE *parse = &stream->parse;
+	struct HTTPREQUEST *req = &stream->app.httpreq;
 
 	UNUSEDPARM(req); UNUSEDPARM(parse);
 
@@ -30,8 +31,9 @@ void parse_ftp_request(struct TCPRECORD *sess, struct NetFrame *frame, const uns
 
 void parse_ftp_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
-	struct PARSE *parse = &sess->parse;
-	struct HTTPREQUEST *req = &sess->layer7.httpreq;
+	struct TCP_STREAM *stream = &sess->from_server;
+	struct PARSE *parse = &stream->parse;
+	struct HTTPREQUEST *req = &stream->app.httpreq;
 
 	UNUSEDPARM(req); UNUSEDPARM(parse);
 

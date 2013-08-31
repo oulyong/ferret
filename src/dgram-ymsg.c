@@ -143,9 +143,11 @@ void process_ymsg_client_request(
 {
 	struct FerretEngine *eng = sess->eng;
 	struct Ferret *ferret = eng->ferret;
-	unsigned service = sess->layer7.ymsg.service;
-	unsigned status = sess->layer7.ymsg.status;
+	struct TCP_STREAM *stream = &sess->to_server;
+	unsigned service = stream->app.ymsg.service;
+	unsigned status = stream->app.ymsg.status;
 	struct Atom atom;
+
 
 	switch (service) {
 	
@@ -163,7 +165,7 @@ void process_ymsg_client_request(
 					JOT_SRC("ID-IP", frame),
 					JOT_PRINT("username", atom.px+atom.offset, atom.len),
 					0);
-				strncpy_s((char*)sess->layer7.ymsg.username, sizeof(sess->layer7.ymsg.username), (char*)atom.px+atom.offset, atom.len);
+				strncpy_s((char*)stream->app.ymsg.username, sizeof(stream->app.ymsg.username), (char*)atom.px+atom.offset, atom.len);
 			}
 			atom = ymsg_get_enumerated_item(ymsg_packet, "1"); /* "active_id", which may differ from "yahoo_id" */
 			if (atom.len) {
@@ -171,14 +173,14 @@ void process_ymsg_client_request(
 					JOT_SRC("ID-IP", frame),
 					JOT_PRINT("username", atom.px+atom.offset, atom.len),
 					0);
-				strncpy_s((char*)sess->layer7.ymsg.username, sizeof(sess->layer7.ymsg.username), (char*)atom.px+atom.offset, atom.len);
+				strncpy_s((char*)stream->app.ymsg.username, sizeof(stream->app.ymsg.username), (char*)atom.px+atom.offset, atom.len);
 			}
 
 			/* 
 			 * Report challenge/response for password-cracking tools
 			 */
-			if (sess->reverse && sess->reverse->str[1].length) { /* if we have a challenge from the other direction */
-				strfrag_init(&sess->reverse->str[1]);
+			if (sess->from_server.str[1].length) { /* if we have a challenge from the other direction */
+				strfrag_init(&sess->from_server.str[1]);
 			}
 
 			break;
@@ -197,7 +199,7 @@ void process_ymsg_client_request(
 					JOT_SRC("ID-IP", frame),
 					JOT_PRINT("username", atom.px+atom.offset, atom.len),
 					0);
-				strncpy_s((char*)sess->layer7.ymsg.username, sizeof(sess->layer7.ymsg.username), (char*)atom.px+atom.offset, atom.len);
+				strncpy_s((char*)stream->app.ymsg.username, sizeof(stream->app.ymsg.username), (char*)atom.px+atom.offset, atom.len);
 			}
 			break;
 		default:
@@ -230,8 +232,9 @@ void process_ymsg_server_response(
 {
 	struct FerretEngine *eng = sess->eng;
 	struct Ferret *ferret = eng->ferret;
-	unsigned service = sess->layer7.ymsg.service;
-	unsigned status = sess->layer7.ymsg.status;
+	struct TCP_STREAM *stream = &sess->from_server;
+	unsigned service = stream->app.ymsg.service;
+	unsigned status = stream->app.ymsg.status;
 	struct Atom atom;
 
 	switch (service) {
@@ -253,14 +256,14 @@ void process_ymsg_server_response(
 						JOT_DST("ID-IP", frame),
 						JOT_PRINT("username", atom.px+atom.offset, atom.len),
 						0);
-					strncpy_s((char*)sess->layer7.ymsg.username, sizeof(sess->layer7.ymsg.username), (char*)atom.px+atom.offset, atom.len);
+					strncpy_s((char*)stream->app.ymsg.username, sizeof(stream->app.ymsg.username), (char*)atom.px+atom.offset, atom.len);
 				}
 
 				/* Note the password hash */
 				if (atom.len && challenge.len && algorithm.len && atom_is_number(algorithm)) {
-					strfrag_init(sess->str+1);
-					strfrag_append(sess->str+1, challenge.px+challenge.offset, challenge.len);
-					sess->layer7.ymsg.pwhash_algorithm = atom_to_number(algorithm);
+					strfrag_init(stream->str+1);
+					strfrag_append(stream->str+1, challenge.px+challenge.offset, challenge.len);
+					stream->app.ymsg.pwhash_algorithm = atom_to_number(algorithm);
 				}
 			}
 			break;
@@ -275,7 +278,7 @@ void process_ymsg_server_response(
 				JOT_DST("ID-IP", frame),
 				JOT_PRINT("username", atom.px+atom.offset, atom.len),
 				0);
-			strncpy_s((char*)sess->layer7.ymsg.username, sizeof(sess->layer7.ymsg.username), (char*)atom.px+atom.offset, atom.len);
+			strncpy_s((char*)stream->app.ymsg.username, sizeof(stream->app.ymsg.username), (char*)atom.px+atom.offset, atom.len);
 		}
 		break;
 	case 241:

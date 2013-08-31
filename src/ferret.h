@@ -28,7 +28,7 @@ struct TCPRECORD;
 struct Listener;
 
 struct FerretEngine;
-typedef void (*FERRET_PARSER)(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
+typedef void (*FERRET_PARSER)(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
 
 #include "stack-tcpfrag.h"
 #include "stack-tcp.h"

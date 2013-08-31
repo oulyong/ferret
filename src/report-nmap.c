@@ -461,4 +461,5 @@ report_nmap(struct Ferret *ferret, unsigned report_count)
 		}
 	}
 
+	return;
 }

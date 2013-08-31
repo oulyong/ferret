@@ -22,7 +22,8 @@ void  http_parse_form_field(struct TCPRECORD *sess, struct NetFrame *frame,
 				const unsigned char *value,
 				unsigned value_length)
 {
-	struct HTTPREQUEST *req = &sess->layer7.httpreq;
+	struct TCP_STREAM *stream = &sess->to_server;
+	struct HTTPREQUEST *req = &stream->app.httpreq;
 
 	if (name == NULL)
 		return;
@@ -107,8 +108,9 @@ void  http_parse_form_field(struct TCPRECORD *sess, struct NetFrame *frame,
 
 void parse_http_content_form(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
+	struct TCP_STREAM *stream = &sess->to_server;
 	unsigned offset=0;
-	struct HTTPREQUEST *req = &sess->layer7.httpreq;
+	struct HTTPREQUEST *req = &stream->app.httpreq;
 
 	enum {
 	POST_NAME_PRE,

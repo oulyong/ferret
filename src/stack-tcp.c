@@ -54,24 +54,6 @@ static void tcp_fin(struct Ferret *ferret, struct NetFrame *frame)
 	UNUSEDPARM(ferret);UNUSEDPARM(frame);
 }
 
-FERRET_PARSER reverse_parser(FERRET_PARSER forward)
-{
-	if (parse_http_request == forward)
-		return (FERRET_PARSER)parse_http_response;
-	if (parse_rdp_request == forward)
-		return (FERRET_PARSER)parse_rdp_response;
-	if (process_simple_smtp_request == forward)
-		return (FERRET_PARSER)process_simple_smtp_response;
-	if (parse_ssl_request == forward)
-		return (FERRET_PARSER)parse_ssl_response;
-	if (parse_dcerpc_request == forward)
-		return (FERRET_PARSER)parse_dcerpc_response;
-	if (parse_smb_request == forward)
-		return (FERRET_PARSER)parse_smb_response;
-
-
-	return 0;
-}
 
 
 /**
@@ -111,6 +93,20 @@ smellslike_httprequest(const unsigned char *data, unsigned length)
 		if (i>10 && strnicmp((const char*)&data[i-7], "HTTP/0.9", 8) == 0)
 			return 1;
 		
+	}
+
+	return 0;
+}
+static int 
+smellslike_http_response(const unsigned char *data, unsigned length)
+{
+	if (length >= 8) {
+		if (strnicmp((const char*)&data[0], "HTTP/1.0", 8) == 0)
+			return 1;
+		if (strnicmp((const char*)&data[0], "HTTP/1.1", 8) == 0)
+			return 1;
+		if (strnicmp((const char*)&data[0], "HTTP/0.9", 8) == 0)
+			return 1;
 	}
 
 	return 0;
@@ -157,37 +153,65 @@ static unsigned tcp_record_hash(struct TCPRECORD *rec)
 
 	for (i=0; i<16; i++) {
 		hash += rec->ip_dst[i];
-		hash += rec->ip_src[i] << 8;
+		hash += rec->ip_src[i];
 	}
 	hash += rec->tcp_dst;
-	hash += rec->tcp_src << 8;
+	hash += rec->tcp_src;
 
+	hash ^= (hash>>16);
 	return hash;
 }
-static unsigned tcp_record_equals(struct TCPRECORD *left, struct TCPRECORD *right)
+static unsigned tcp_record_equals(struct TCPRECORD *left, struct TCPRECORD *right, unsigned *is_reversed)
 {
 	unsigned i;
-	unsigned bytes=16;
+	unsigned address_length;
+
 	if (left->ip_ver != right->ip_ver)
 		return 0;
 
-	if (left->ip_ver == 0)
-		bytes = 4;
+	if (left->ip_ver == 0 || left->ip_ver == 4)
+		address_length = 4;
+	else
+		address_length = 16;
+
+	/* 
+	 * Forward compare
+	 */
+	if (left->tcp_dst != right->tcp_dst)
+		goto reverse;
+	if (left->tcp_src != right->tcp_src)
+		goto reverse;
 
 
-	for (i=0; i<bytes; i++) {
+	for (i=0; i<address_length; i++) {
 		if (left->ip_src[i] != right->ip_src[i])
-			return 0;
+			goto reverse;
 		if (left->ip_dst[i] != right->ip_dst[i])
+			goto reverse;
+	}
+
+	*is_reversed = 0;
+	return 1;
+reverse:
+
+	if (left->tcp_dst != right->tcp_src)
+		return 0;
+	if (left->tcp_src != right->tcp_dst)
+		return 0;
+
+	for (i=0; i<address_length; i++) {
+		if (left->ip_src[i] != right->ip_dst[i])
+			return 0;
+		if (left->ip_dst[i] != right->ip_src[i])
 			return 0;
 	}
-	if (left->tcp_dst != right->tcp_dst)
-		return 0;
-	if (left->tcp_src != right->tcp_src)
-		return 0;
 
+	*is_reversed = 1;
 	return 1;
 }
+
+
+
 static struct TCPRECORD *
 tcp_lookup_session(
 	struct FerretEngine *eng, 
@@ -195,20 +219,21 @@ tcp_lookup_session(
 	unsigned ipver, 
 	const void *ipsrc, const void *ipdst, 
 	unsigned portsrc, unsigned portdst, 
-	unsigned seqno, 
+	unsigned *is_reversed,
 	unsigned is_creating)
 {
 	static const size_t MAX_SESSIONS = (sizeof(eng->sessions)/sizeof(eng->sessions[0]));
 	struct TCPRECORD rec = {0};
 	struct TCPRECORD **r_index;
 	struct TCPRECORD *sess;
+	unsigned h;
 
 	/* Set the current session to NULL, in case something happens */
 	eng->current = 0;
 
 	/* TODO Add support for IPv6 later, unfortunately we are only
 	 * supporting IPv4 sessions right now */
-	if (ipver != 0) {
+	if (ipver != 0 && ipver != 4) {
 		return 0;
 	}
 
@@ -221,7 +246,8 @@ tcp_lookup_session(
 	rec.tcp_src = (unsigned short)portsrc;
 
 	/* Do a hash lookup */
-	r_index = &eng->sessions[tcp_record_hash(&rec) % MAX_SESSIONS];
+	h = tcp_record_hash(&rec) % MAX_SESSIONS;
+	r_index = &eng->sessions[h];
 	sess = *r_index;
 
 	/* Follow the linked-list from that hash point
@@ -231,10 +257,19 @@ tcp_lookup_session(
 	 * it hit a NULL went into an infinite loop. I changed it so that it
 	 * would now stop once it reached its starting point. I think there
 	 * are other bits of the code ethat likewise need to change. */
-	while (sess && !tcp_record_equals(sess, &rec)) {
-		sess = sess->next;
-		if (sess == *r_index) {
-			sess = NULL;
+	{
+		unsigned depth = 0;
+		while (sess && !tcp_record_equals(sess, &rec, is_reversed)) {
+			if (depth++ > 1000) {
+				printf("%x: too many TCP hash collisions, %u out of %u [%u.%u.%u.%u:%u -> %u.%u.%u.%u:%u]\n", h, depth, eng->session_count,
+					rec.ip_src[3], rec.ip_src[2], rec.ip_src[1], rec.ip_src[0], rec.tcp_src,
+					rec.ip_dst[3], rec.ip_dst[2], rec.ip_dst[1], rec.ip_dst[0], rec.tcp_dst
+						);
+			}
+			sess = sess->next;
+			if (sess == *r_index) {
+				sess = NULL;
+			}
 		}
 	}
 
@@ -246,7 +281,7 @@ tcp_lookup_session(
 		eng->session_count++;
 		sess = (struct TCPRECORD*)malloc(sizeof(*sess));
 		memcpy(sess, &rec, sizeof(rec));
-		sess->seqno = seqno;
+
 		sess->a3 = 0xa3a4a5a6;
 
 		/* Insert into the doubly-linked list */
@@ -274,8 +309,8 @@ tcp_lookup_session(
 		housekeeping_remove(eng->housekeeper, &sess->housekeeping_entry);
 
 		/* Do a "close" on the TCP connection, and the reverse connection as well */
-		if (sess->parser)
-			sess->parser(sess, frame, TCP_CLOSE, 0);
+		sess->to_server.parser(sess, &sess->to_server, frame, TCP_CLOSE, 0);
+		sess->from_server.parser(sess, &sess->from_server, frame, TCP_CLOSE, 0);
 
 		/* Remove the record from the list */
 		sess->next->prev = sess->prev;
@@ -287,23 +322,24 @@ tcp_lookup_session(
 		sess->next = NULL;
 		sess->prev = NULL;
 
-		/* Make sure the reverse doesn't point back to us */
-		if (sess->reverse && sess->reverse->reverse == sess)
-			sess->reverse->reverse = 0;
-
 		/* Clean up the fragmentation buffers
 		 * TODO: we need to separately process these fragments */
-		if (sess->segments != NULL)
+		if (sess->to_server.segments != NULL)
 			FRAMERR(frame, "%s: discarding segment data\n", "TCP");
-		tcpfrag_delete_all(&sess->segments);
+		if (sess->from_server.segments != NULL)
+			FRAMERR(frame, "%s: discarding segment data\n", "TCP");
+		tcpfrag_delete_all(&sess->to_server.segments);
+		tcpfrag_delete_all(&sess->from_server.segments);
 
 		/* Free the string reassemblers */
-		for (i=0; i<sizeof(sess->str)/sizeof(sess->str[0]); i++)
-			strfrag_finish(&sess->str[i]);
+		for (i=0; i<sizeof(sess->to_server.str)/sizeof(sess->from_server.str[0]); i++) {
+			strfrag_finish(&sess->to_server.str[i]);
+			strfrag_finish(&sess->from_server.str[i]);
+		}
 
 		/* Free the memory */
 		if (sess->a3 != 0xa3a4a5a6)
-			printf("err\n");
+			printf("TCP stream memory corruption, probalby exploitable\n");
 		free(sess);
 		sess = NULL;
 		eng->session_count--;
@@ -317,47 +353,162 @@ tcp_lookup_session(
 
 extern unsigned smellslike_aim_oscar(const unsigned char *px, unsigned length);
 
+
 /**
  * Run various heuristics on the TCP connection in order to figure out a likely
  * protocol parser for it.
  */
-FERRET_PARSER tcp_smellslike(const unsigned char *px, unsigned length, const struct NetFrame *frame)
+unsigned
+tcp_smellslike(struct TCPRECORD *sess,  const struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
 	unsigned src_port = frame->src_port;
 	unsigned dst_port = frame->dst_port;
 	struct SmellsSSL smell;
 	struct SmellsDCERPC dcerpc;
+	FERRET_PARSER *to_server = &sess->to_server.parser;
+	FERRET_PARSER *from_server = &sess->from_server.parser;
 
-	if (smellslike_httprequest(px, length))
-		return (FERRET_PARSER)parse_http_request;
+	/* HTTP */
+	if (smellslike_httprequest(px, length)) {
+		*to_server = parse_http_request;
+		*from_server = parse_http_response;
+		return 0;
+	}
+	if (smellslike_http_response(px, length)) {
+		*to_server = parse_http_request;
+		*from_server = parse_http_response;
+		return 1; /* reverse */
+	}
 
+	/* SSL */
 	smell.state = 0;
-	if (smellslike_ssl_request(frame, &smell, px, length))
-		return (FERRET_PARSER)parse_ssl_request;
+	if (smellslike_ssl_request(frame, &smell, px, length)) {
+		*to_server = parse_ssl_request;
+		*from_server = parse_ssl_response;
+		return 0;
+	}
 
+	/* MSRPC */
 	dcerpc.state = 0;
-	if (smellslike_msrpc_toserver(&dcerpc, px, length))
-		return (FERRET_PARSER)parse_dcerpc_request;
+	if (smellslike_msrpc_toserver(&dcerpc, px, length)) {
+		*to_server = parse_dcerpc_request;
+		*from_server = parse_dcerpc_response;
+		return 0;
+	}
 
-	if ((src_port == 5190 || dst_port == 5190) && length > 6 && px[0] == 0x2a && 1 <= px[1] && px[1] <= 5)
-		return (FERRET_PARSER)parse_aim_oscar;
+	/* MSN MESSENGER */
+	if ((src_port == 1863 || dst_port == 1863)
+		&& smellslike_msn_messenger(px, length)) {
+		*to_server = process_simple_msnms_client_request;
+		*from_server = process_msnms_server_response;
+		return (src_port == 1863);
+	}
+
+	/* AIM OSCAR */
+	if (length > 6 && px[0] == 0x2a && 1 <= px[1] && px[1] <= 5) {
+		if (src_port == 5190) {
+			*to_server = parse_aim_oscar_to_server;
+			*from_server = parse_aim_oscar_from_server;
+			return 1;
+		} else if (dst_port == 5190) {
+			*to_server = parse_aim_oscar_to_server;
+			*from_server = parse_aim_oscar_from_server;
+			return 0;
+		}
+	}
 
 	/* I'm not sure why, but I saw AIM traffic across port 443, but not SSL
 	 * encrypted. I assume that the AIM client does this in order to avoid
 	 * being firewalled. */
-	if ((src_port == 443 || dst_port == 443) && length > 6 && px[0] == 0x2a && 1 <= px[1] && px[1] <= 5 && smellslike_aim_oscar(px, length))
-		return (FERRET_PARSER)parse_aim_oscar;
+	if ((src_port == 443 || dst_port == 443) && length > 6 && px[0] == 0x2a && 1 <= px[1] && px[1] <= 5 && smellslike_aim_oscar(px, length)) {
+		if (src_port == 5190) {
+			*to_server = parse_aim_oscar_to_server;
+			*from_server = parse_aim_oscar_from_server;
+			return 1;
+		} else if (dst_port == 5190) {
+			*to_server = parse_aim_oscar_to_server;
+			*from_server = parse_aim_oscar_from_server;
+			return 0;
+		}
+	}
 
-	if ((src_port == 443 && dst_port > 1024) || (dst_port == 443 && src_port > 1024))
-		return (FERRET_PARSER)parse_ssl_request;
-	if ((src_port == 465 && dst_port > 1024) || (dst_port == 465 && src_port > 1024))
-		return (FERRET_PARSER)parse_ssl_request;
-	if ((src_port == 993 && dst_port > 1024) || (dst_port == 993 && src_port > 1024))
-		return (FERRET_PARSER)parse_ssl_request;
-	if ((src_port == 995 && dst_port > 1024) || (dst_port == 995 && src_port > 1024))
-		return (FERRET_PARSER)parse_ssl_request;
+	/* Yahoo Msg */
+	if ((dst_port == 5050) || (src_port == 5050 && length > 4 && memcmp(px, "YMSG", 4))) {
+		*to_server = stack_tcp_ymsg_client_request;
+		*from_server = stack_tcp_ymsg_server_response;
+		return (src_port == 5050);
+	}
 
-	return NULL;
+	/* SSL */
+	if (src_port > 1024)
+	switch (dst_port) {
+	case 443: case 465:	case 993: case 995:
+			*to_server = parse_ssl_request;
+			*from_server = parse_ssl_response;
+			return 0;
+	}
+	if (src_port > 1024)
+	switch (dst_port) {
+	case 443: case 465:	case 993: case 995:
+			*to_server = parse_ssl_request;
+			*from_server = parse_ssl_response;
+			return 1;
+	}
+
+	/* SMTP */
+	if (dst_port == 25 || src_port == 25) {
+		*to_server = process_simple_smtp_request;
+		*from_server = process_simple_smtp_response;
+		return (src_port == 25);
+	}
+
+	/* RDP - remote desktop protocol from Microsoft */
+	if (dst_port == 3389 || src_port == 3389) {
+		*to_server = parse_rdp_request;
+		*from_server = parse_rdp_response;
+		return (src_port == 3389);
+	}
+
+	/* POP3 email */
+	if (dst_port == 110 || src_port == 110) {
+		*to_server = parse_pop3_request;
+		*from_server = parse_pop3_response;
+		return (src_port == 110);
+	}
+
+	/* SMB */
+	if (dst_port == 139 || src_port == 139) {
+		*to_server = parse_smb_request;
+		*from_server = parse_smb_response;
+		return (src_port == 139);
+	}
+	if (dst_port == 445 || src_port == 445) {
+		*to_server = parse_smb_request;
+		*from_server = parse_smb_response;
+		return (src_port == 445);
+	}
+
+	/* DCE RPC */
+	if (dst_port == 135 || src_port == 135) {
+		*to_server = parse_dcerpc_request;
+		*from_server = parse_dcerpc_response;
+		return (src_port == 135);
+	}
+
+	if (dst_port == 80 || src_port == 80) {
+		*to_server = parse_http_request;
+		*from_server = parse_http_response;
+		return (src_port == 80);
+	}
+
+
+	/*
+	 * Default
+	 */
+	*to_server =  stream_to_server_unknown;
+	*from_server = stream_from_server_unknown;
+
+	return 0;
 }
 
 
@@ -369,6 +520,7 @@ static void
 tcp_housekeeping(struct Housekeeping *housekeeper, void *housekeeping_data, time_t now, struct NetFrame *frame)
 {
 	struct TCPRECORD *sess = (struct TCPRECORD*)housekeeping_data;
+	unsigned is_reversed = 0;
 
 	/* If there has been activity since the last housekeeping check,
 	 * then re-register this to be 5 minutes from the last activity */
@@ -376,14 +528,9 @@ tcp_housekeeping(struct Housekeeping *housekeeper, void *housekeeping_data, time
 		housekeeping_remember(housekeeper, sess->last_activity + 5*60, tcp_housekeeping, sess, &sess->housekeeping_entry);
 		return;
 	}
-
 	
 	/* Free the TCP connections */
-	/*if (sess->reverse) {
-		struct TCPRECORD *reverse = sess->reverse;
-		tcp_lookup_session(reverse->eng, frame, reverse->ip_ver, reverse->ip_src, reverse->ip_dst, reverse->tcp_src, reverse->tcp_dst, reverse->seqno, TCP_DESTROY);
-	}*/
-	tcp_lookup_session(sess->eng, frame, sess->ip_ver, sess->ip_src, sess->ip_dst, sess->tcp_src, sess->tcp_dst, sess->seqno, TCP_DESTROY);
+	tcp_lookup_session(sess->eng, frame, sess->ip_ver, sess->ip_src, sess->ip_dst, sess->tcp_src, sess->tcp_dst, &is_reversed, TCP_DESTROY);
 }
 
 
@@ -395,63 +542,37 @@ tcp_housekeeping(struct Housekeeping *housekeeper, void *housekeeping_data, time
  * way is to simply delete the connect and start over again.
  */
 static void 
-tcp_ack_data(struct Ferret *ferret, struct NetFrame *frame, unsigned seqno)
+tcp_ack_data(struct TCPRECORD *sess, unsigned is_reversed, struct NetFrame *frame, unsigned ackno)
 {
-	struct TCPRECORD *sess;
-	struct FerretEngine *eng = ferret->eng[ferret->engine_count - 1];
-	unsigned i;
+	unsigned seqno;
 
-	/*
-	 * Lookup the REVERSE TCP connection
-	 */
-	sess = NULL;
-	for (i=0; i<ferret->engine_count; i++) {
-		sess = tcp_lookup_session(	ferret->eng[i], 
-									frame, 
-									frame->ipver, 
-									&frame->dst_ipv4, 
-									&frame->src_ipv4, 
-									frame->dst_port, 
-									frame->src_port, 
-									seqno, 
-									TCP_LOOKUP);
-		if (sess != NULL) {
-			eng = ferret->eng[i];
-			break;
-		}
-	}
 	if (sess == NULL)
 		return;
 
-	/*
-	 * Test to see if the acknowledgement number is past the end of the
-	 * the next expected sequence number 
-	 */
-	if ((int)(seqno - sess->seqno) > 0) {
-		/* Oops, we've missed a packet. Therefore, we need to flush the 
-		 * state of this system and remove the record. The only things
-		 * that we'll remember are:
-		 * 1. the associated connection going the reverse direction
-		 * 2. the protocol parser associated with this connection
-		 */
-		FERRET_PARSER parser = sess->parser;
-		struct TCPRECORD *reverse = sess->reverse;
+	/* Get the 'seqno' from the opposite side of the TCP connection to match the ACK number */
+	if (is_reversed)
+		seqno = sess->to_server.seqno;
+	else
+		seqno = sess->from_server.seqno;
 
 
-		/* Destroy the TCP connection and remove it from our table */
-		VALIDATE(sess->eng != 0);
-		tcp_lookup_session(sess->eng, frame, sess->ip_ver, sess->ip_src, sess->ip_dst, sess->tcp_src, sess->tcp_dst, sess->seqno, TCP_DESTROY);
+	if ((int)(ackno - seqno) > 0) {
+		/* We have experienced a dropped packet on the other side of the connection */
+		/*printf("TCP DROPPED PACKET EVENT\n");
+		printf("Session: %u.%u.%u.%u : %u  ->  %u.%u.%u.%u : %u\n",
+			(unsigned char)(sess->ip_src[3]),
+			(unsigned char)(sess->ip_src[2]),
+			(unsigned char)(sess->ip_src[1]),
+			(unsigned char)(sess->ip_src[0]),
+			sess->tcp_src,
 
-		/* Now recreate the connection */
-		eng = ferret->eng[ferret->engine_count - 1]; /* use the latest engine block */
-		sess = tcp_lookup_session(eng, frame, frame->ipver, &frame->dst_ipv4, &frame->src_ipv4, frame->dst_port, frame->src_port, seqno, TCP_CREATE);
-		if (sess) {
-			sess->eng = eng;
-			sess->parser = parser;
-			sess->reverse = reverse;
-			if (sess->reverse)
-				sess->reverse->reverse = sess;
-		}
+			(unsigned char)(sess->ip_dst[3]),
+			(unsigned char)(sess->ip_dst[2]),
+			(unsigned char)(sess->ip_dst[1]),
+			(unsigned char)(sess->ip_dst[0]),
+			sess->tcp_dst
+			);*/
+
 	}
 }
 
@@ -459,10 +580,10 @@ tcp_ack_data(struct Ferret *ferret, struct NetFrame *frame, unsigned seqno)
  *
  */
 static void
-tcp_data_parse(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length, unsigned seqno, unsigned is_frag)
+tcp_data_parse(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length, unsigned seqno, unsigned is_frag)
 {
 	unsigned i;
-
+	
 	/*
 	 * MISSING FRAGMENT
 	 * 
@@ -471,9 +592,9 @@ tcp_data_parse(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned ch
 	 * fragment somewhere. Therefore, we need to add the fragment to the 
 	 * queue to be processed when (if ever) the missing fragment arrives
 	 */
-	if (SEQ_FIRST_BEFORE_SECOND(sess->seqno, seqno)) {
+	if (SEQ_FIRST_BEFORE_SECOND(stream->seqno, seqno)) {
 
-		if (SEQ_FIRST_BEFORE_SECOND(sess->seqno+1999000, seqno)) {
+		if (SEQ_FIRST_BEFORE_SECOND(stream->seqno+1999000, seqno)) {
 			/* This fragment is too far in the future, so discard it */
 			FRAMERR(frame, "tcp: orphan fragment\n");
 			/* defcon2008/dump002.pcap(93562)
@@ -489,7 +610,7 @@ tcp_data_parse(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned ch
 
 		/* Remeber this segment so that we can process it later when we 
 		 * get something appropriate. */
-		tcpfrag_add(&(sess->segments), px, length, seqno);
+		tcpfrag_add(&(stream->segments), px, length, seqno);
 		return;
 
 	}
@@ -502,7 +623,7 @@ tcp_data_parse(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned ch
 	 * we've already processed. This will be the case on repeated
 	 * transmissions of the same packet as well.
 	 */
-	if (SEQ_FIRST_BEFORE_SECOND(seqno+length, sess->seqno) || seqno+length == sess->seqno) {
+	if (SEQ_FIRST_BEFORE_SECOND(seqno+length, stream->seqno) || seqno+length == stream->seqno) {
 		/* This fragment is completely before the current one, therefore
 		 * we can completely ignore it */
 		return;
@@ -516,9 +637,9 @@ tcp_data_parse(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned ch
 	 * in the middle of something we've already processed. There is still
 	 * some new data, so we just ignore the old bit.
 	 */
-	if (SEQ_FIRST_BEFORE_SECOND(seqno, sess->seqno)) {
+	if (SEQ_FIRST_BEFORE_SECOND(seqno, stream->seqno)) {
 		/* Regress: ferret-regress-00001-tcp-overlap.pcap frame 20 */
-		unsigned sublen = sess->seqno - seqno;
+		unsigned sublen = stream->seqno - seqno;
 		seqno += sublen;
 		length -= sublen;
 		px += sublen;
@@ -526,15 +647,14 @@ tcp_data_parse(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned ch
 
 
 	/* TEMP: change this to an assert */
-	if (sess->seqno != seqno)
+	if (stream->seqno != seqno)
 		FRAMERR(frame, "programming error\n");
 
 	/*
 	 * PARSE THE DATA WITH A PROTOCOL PARSER
 	 */
-	if (sess->parser)
-		sess->parser(sess, frame, px, length);
-	sess->seqno = seqno+length;
+	stream->parser(sess, stream, frame, px, length);
+	stream->seqno = seqno+length;
 
 	/* STRING RE-ASSEMBLER:
 	 *	If we are in the middle of parsing a string from the packet,
@@ -542,13 +662,42 @@ tcp_data_parse(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned ch
 	 *	disappear. Therefore, we need to allocate a backing store
 	 *	for it that will be preserved along with the TCP stream so
 	 *	that the packet can disappear */
-	for (i=0; i<sizeof(sess->str)/sizeof(sess->str[0]); i++) {
-		if (sess->str[i].length && sess->str[i].backing_store == NULL)
-			strfrag_force_backing_store(&sess->str[i]);
+	for (i=0; i<sizeof(stream->str)/sizeof(stream->str[0]); i++) {
+		if (stream->str[i].length && stream->str[i].backing_store == NULL)
+			strfrag_force_backing_store(&stream->str[i]);
 	}
 
 	if (sess->layer7_proto == 0)
 		sess->layer7_proto = frame->layer7_protocol;
+}
+
+
+void swap(const void *lhs, const void *rhs, size_t length)
+{
+	unsigned char *p_lhs = (unsigned char *)lhs;
+	unsigned char *p_rhs = (unsigned char *)rhs;
+	size_t i;
+
+	for (i=0; i<length; i++) {
+		p_lhs[i] ^= p_rhs[i];
+	}
+	for (i=0; i<length; i++) {
+		p_rhs[i] ^= p_lhs[i];
+	}
+	for (i=0; i<length; i++) {
+		p_lhs[i] ^= p_rhs[i];
+	}
+}
+
+/**
+ * Called when we've discovered that the session is going the wrong way, 
+ * that it's going FROM the server rather than TO the server.
+ */
+void reverse_direction(struct TCPRECORD *sess)
+{
+	swap(&sess->tcp_src, &sess->tcp_dst, sizeof(sess->tcp_src));
+	swap(&sess->ip_src, &sess->ip_dst, sizeof(sess->ip_src));
+	swap(&sess->to_server, &sess->from_server, sizeof(sess->to_server));
 }
 
 /**
@@ -559,11 +708,10 @@ static void
 tcp_data(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length, unsigned seqno, unsigned ackno)
 {
 	struct TCPRECORD *sess;
+	struct TCP_STREAM *stream;
 	struct FerretEngine *eng = ferret->eng[ferret->engine_count - 1];
 	unsigned i;
-
-	UNUSEDPARM(ackno);
-
+	unsigned is_reversed = 0;
 
 	/*
 	 * Lookup (or create) a TCP session object. This is an object in a
@@ -572,7 +720,12 @@ tcp_data(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px,
 	/* Look for the session in one of our eng instances */
 	sess = NULL;
 	for (i=0; i<ferret->engine_count; i++) {
-		sess = tcp_lookup_session(ferret->eng[i], frame, frame->ipver, &frame->src_ipv4, &frame->dst_ipv4, frame->src_port, frame->dst_port, seqno, TCP_LOOKUP);
+		sess = tcp_lookup_session(ferret->eng[i], 
+						frame, frame->ipver, 
+						&frame->src_ipv4, &frame->dst_ipv4, 
+						frame->src_port, frame->dst_port, 
+						&is_reversed,
+						TCP_LOOKUP);
 		if (sess != NULL) {
 			eng = ferret->eng[i];
 			break;
@@ -581,21 +734,27 @@ tcp_data(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px,
 
 	/* If not found, create it in the newest instance */
 	if (sess == NULL) {
-		struct TCPRECORD *reverse;
-
+		
 		/* Create a new TCP session record */
-		sess = tcp_lookup_session(ferret->eng[ferret->engine_count-1], frame, frame->ipver, &frame->src_ipv4, &frame->dst_ipv4, frame->src_port, frame->dst_port, seqno, TCP_CREATE);
+		sess = tcp_lookup_session(
+					ferret->eng[ferret->engine_count-1], 
+					frame, frame->ipver, 
+					&frame->src_ipv4, &frame->dst_ipv4, 
+					frame->src_port, frame->dst_port, 
+					&is_reversed, TCP_CREATE);
 		sess->eng = eng;
+		frame->sess = sess;
 
-	
-		/* If there is a reverse connection, let's get a pointer to it to 
-		 * make request/response processing easier */
-		reverse = tcp_lookup_session(ferret->eng[ferret->engine_count-1], frame, frame->ipver, &frame->dst_ipv4, &frame->src_ipv4, frame->dst_port, frame->src_port, ackno, TCP_LOOKUP);
-		if (reverse) {
-			sess->reverse = reverse;
-			sess->parser = reverse_parser(reverse->parser);
-			if (sess->reverse->reverse == NULL)
-				sess->reverse->reverse = sess;
+
+		sess->to_server.seqno = seqno;
+		sess->to_server.ackno = seqno;
+		sess->from_server.seqno = ackno;
+		sess->from_server.ackno = ackno;
+
+		is_reversed = tcp_smellslike(sess, frame, px, length);
+		if (is_reversed) {
+			swap(&sess->to_server.parser, &sess->from_server.parser, sizeof(sess->to_server.parser));
+			reverse_direction(sess);
 		}
 	}
 
@@ -603,72 +762,38 @@ tcp_data(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px,
 	if (!sess)
 		return; /* TODO: handle packets that cannot be assigned a state object */
 
-	VALIDATE(sess->reverse == 0 || sess->reverse->reverse == sess);
-
-	/* Record the last time we saw a data packet. We will use this value
+    /* Record the last time we saw a data packet. We will use this value
 	 * in order to determine when we should age out the TCP connection,
 	 * where the oldest inactive connections will be those that get aged out
 	 * first. */
 	sess->last_activity = frame->time_secs;
 
-	/*
-	 * Figure out what the TCP connection contains
-	 */
-	if (sess->parser == NULL)
-		sess->parser = tcp_smellslike(px, length, frame);
-
-	if (sess->parser == NULL) {
-		if ((frame->dst_port == 5050) 
-			|| (frame->src_port == 5050 && length > 4 && memcmp(px, "YMSG", 4))) {
-			if (frame->dst_port == 5050)
-				sess->parser = stack_tcp_ymsg_client_request;
-			else
-				sess->parser = stack_tcp_ymsg_server_response;
-		}
-
-		if (frame->src_port == 1863 || frame->dst_port == 1863) {
-			if (smellslike_msn_messenger(px, length)) {
-				if (frame->src_port == 1863)
-					sess->parser = process_msnms_server_response;
-				else
-					sess->parser = process_simple_msnms_client_request;
-			}
-		}
-
-		if (frame->src_port == 110)
-			sess->parser = parse_pop3_response;
-		else if (frame->dst_port == 110)
-			sess->parser = parse_pop3_request;
-
-		if (frame->src_port == 3389)
-			sess->parser = parse_rdp_response;
-		else if (frame->dst_port == 3389)
-			sess->parser = parse_rdp_request;
-
-		if (frame->src_port == 25)
-			sess->parser = process_simple_smtp_response;
-		else if (frame->dst_port == 25)
-			sess->parser = process_simple_smtp_request;
-	}
+	/* Get the 'stream' */
+	if (is_reversed)
+		stream = &sess->from_server;
+	else
+		stream = &sess->to_server;
 
 	/*
 	 * Now parse the data
 	 */
-	tcp_data_parse(sess, frame, px, length, seqno, 0);
+	tcp_data_parse(sess, stream, frame, px, length, seqno, 0);
+
+	assert(frame->sess);
 
 	/*
 	 * Take care of remaining fragments that attach to this one
 	 */
-	while (sess->segments && (int)(sess->seqno-sess->segments->seqno)>=0) {
+	while (stream->segments && (int)(stream->seqno - stream->segments->seqno)>=0) {
 		/* Regress: ferret-regress-00002-tcp-missing.pcap
 		 *  the case where a saved fragment overlaps with existing fragment */
-		px = sess->segments->px;
-		length = sess->segments->length;
-		seqno = sess->segments->seqno;
+		px = stream->segments->px;
+		length = stream->segments->length;
+		seqno = stream->segments->seqno;
 
-		tcp_data_parse(sess, frame, px, length, seqno, 1);
+		tcp_data_parse(sess, stream, frame, px, length, seqno, 1);
 
-		tcpfrag_delete(&sess->segments);
+		tcpfrag_delete(&stream->segments);
 	}
 	
 	/* Now forget the current processor */
@@ -677,6 +802,7 @@ tcp_data(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px,
 
 void process_tcp(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
+	unsigned is_reversed = 0;
 	struct {
 		unsigned src_port;
 		unsigned dst_port;
@@ -826,7 +952,7 @@ void process_tcp(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
 									&frame->dst_ipv4, 
 									frame->src_port, 
 									frame->dst_port, 
-									tcp.seqno, 
+									&is_reversed,
 									TCP_LOOKUP);
 	if (frame->sess && frame->sess->layer7_proto)
 		frame->layer7_protocol = frame->sess->layer7_proto;
@@ -852,8 +978,8 @@ void process_tcp(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
 	 * received a packet, but we never saw it, then we know that it was
 	 * dropped somewhere on the network (probably because we are getting
 	 * a weak signal via wireless). */
-	if (tcp.flags & TCP_ACK) {
-		tcp_ack_data(ferret, frame, tcp.ackno);
+	if ((tcp.flags & TCP_ACK) && frame->sess) {
+		tcp_ack_data(frame->sess, is_reversed, frame, tcp.ackno);
 	}
 
 	switch (tcp.flags & 0x3F) {
@@ -870,8 +996,9 @@ void process_tcp(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
 		break;
 	case TCP_ACK:
 	case TCP_ACK|TCP_PSH:
-		if (length > tcp.header_length)
+		if (length > tcp.header_length) {
 			tcp_data(ferret, frame, px+tcp.header_length, length-tcp.header_length, tcp.seqno, tcp.ackno);
+		}
 		break;
 	case TCP_RST:
 	case TCP_RST|TCP_ACK:
@@ -942,7 +1069,7 @@ void strfrag_finish(struct StringReassembler *strfrag)
 	memset(strfrag, 0, sizeof(*strfrag));
 }
 
-void strfrag_append(struct StringReassembler *strfrag, const unsigned char *px, unsigned length)
+void strfrag_append(struct StringReassembler *strfrag, const unsigned char *px, size_t length)
 {
 	if (length == 0)
 		return;
@@ -951,7 +1078,7 @@ void strfrag_append(struct StringReassembler *strfrag, const unsigned char *px, 
 		/* Initial condition: we create the first object by pointing
 		 * into the packet */
 		strfrag->the_string = px;
-		strfrag->length = length;
+		strfrag->length = (unsigned)length;
 
 		assert(strfrag->backing_store == 0);
 		return;
@@ -981,7 +1108,7 @@ void strfrag_append(struct StringReassembler *strfrag, const unsigned char *px, 
 		free(strfrag->backing_store);
 		strfrag->backing_store = new_store;
 		strfrag->the_string = new_store;
-		strfrag->length += length;
+		strfrag->length += (unsigned)length;
 		return;
 	}
 
@@ -999,7 +1126,7 @@ void strfrag_append(struct StringReassembler *strfrag, const unsigned char *px, 
 	/* It looks like we are still pointing to the same packet. Therefore, 
 	 * all we have to do is just increase the length of the string
 	 * that we are already pointing to */
-	strfrag->length += length;
+	strfrag->length += (unsigned)length;
 }
 
 void strfrag_force_backing_store(struct StringReassembler *strfrag)

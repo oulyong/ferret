@@ -64,37 +64,41 @@ void parse_dgram_sip_response(struct Ferret *ferret, struct NetFrame *frame, con
 void parse_jpeg_ichat_image(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
 
 
-void parse_http_request(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
-void parse_http_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
 
-void parse_ssl_request(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
-void parse_ssl_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void parse_http_request(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void parse_http_response(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
 
-void parse_dcerpc_request(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
-void parse_dcerpc_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void parse_ssl_request(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void parse_ssl_response(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
 
-void parse_smb_request(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
-void parse_smb_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void parse_dcerpc_request(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void parse_dcerpc_response(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
 
-
-void process_msnms_server_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
-void process_simple_msnms_client_request(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
-
-void parse_pop3_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
-void parse_pop3_request(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
-
-void parse_rdp_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
-void parse_rdp_request(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
-
-void process_simple_smtp_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
-void process_simple_smtp_request(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
-
-void parse_aim_oscar(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
-
-void stack_tcp_ymsg_client_request(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
-void stack_tcp_ymsg_server_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void parse_smb_request(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void parse_smb_response(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
 
 
+void process_msnms_server_response(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void process_simple_msnms_client_request(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+
+void parse_pop3_response(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void parse_pop3_request(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+
+void parse_rdp_response(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void parse_rdp_request(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+
+void process_simple_smtp_response(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void process_simple_smtp_request(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+
+void parse_aim_oscar_to_server(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void parse_aim_oscar_from_server(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+
+void stack_tcp_ymsg_client_request(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void stack_tcp_ymsg_server_response(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+
+
+void stream_to_server_unknown(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void stream_from_server_unknown(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
 
 unsigned smellslike_bittorrent_udp(const unsigned char *px, unsigned length);
 

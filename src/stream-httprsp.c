@@ -109,14 +109,12 @@ value_SET_COOKIE(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned 
 			}
 		}
 		if (domain == NULL) {
-			struct TCPRECORD *rev = sess->reverse;
-			if (rev) {
-				struct HTTPREQUEST *reqx = &rev->layer7.httpreq;
+			struct TCP_STREAM *to_server = &sess->to_server;
+			struct HTTPREQUEST *reqx = &to_server->app.httpreq;
 
-				if (reqx->host && reqx->host->str) {
-					domain = (const char*)reqx->host->str;
-					domain_length = reqx->host->length;
-				}
+			if (reqx->host && reqx->host->str) {
+				domain = (const char*)reqx->host->str;
+				domain_length = reqx->host->length;
 			}
 		}
 		if (domain == NULL || domain_length == 0) {
@@ -313,10 +311,11 @@ void handle_http_response(struct TCPRECORD *sess, struct NetFrame *frame, struct
 	if (match_name_t("video/flv", req->content_type)) {
 		
 		/* Attempt to grab the 'video_id' field from the request URL */
-		if (sess->reverse && sess->reverse->layer7.httpreq.youtube_video_id) {
-			const struct StringT *id = sess->reverse->layer7.httpreq.youtube_video_id;
+		if (sess->to_server.app.httpreq.youtube_video_id) {
+			const struct StringT *id = sess->to_server.app.httpreq.youtube_video_id;
 
-			sprintf_s(req->snarf_filename, sizeof(req->snarf_filename), "%08x-youtube-%.*s.flv", ferret_snarf_id(sess->eng->ferret), id->length, id->str);
+			sprintf_s(req->snarf_filename, sizeof(req->snarf_filename), "%08x-youtube-%.*s.flv", 
+				ferret_snarf_id(sess->eng->ferret), id->length, id->str);
 		}
 	}
 
@@ -327,7 +326,8 @@ void handle_http_response(struct TCPRECORD *sess, struct NetFrame *frame, struct
  */
 void parse_http_response_content(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
-	struct HTTPRESPONSE *req = &sess->layer7.httprsp;
+	struct TCP_STREAM *stream = &sess->from_server;
+	struct HTTPRESPONSE *req = &stream->app.httprsp;
 
 	if (req->snarf_filename[0]) {
 		ferret_snarf(sess->eng->ferret, req->snarf_filename, px, length);
@@ -336,10 +336,10 @@ void parse_http_response_content(struct TCPRECORD *sess, struct NetFrame *frame,
 	UNUSEDPARM(sess);UNUSEDPARM(frame);UNUSEDPARM(px);UNUSEDPARM(length);
 }
 
-void parse_http_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
+void parse_http_response(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
-	struct PARSE *parse = &sess->parse;
-	struct HTTPRESPONSE *req = &sess->layer7.httprsp;
+	struct PARSE *parse = &stream->parse;
+	struct HTTPRESPONSE *req = &stream->app.httprsp;
 	unsigned offset;
 
 	enum {

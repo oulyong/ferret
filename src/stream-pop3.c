@@ -74,12 +74,12 @@ opcode_add(struct POP3REQUEST *req, unsigned opcode)
 			unsigned new_max = req->opcodes_max*2 + 1;
 			unsigned *new_opcodes = (unsigned*)malloc(sizeof(req->opcodes[0]) * new_max);
 			memcpy(new_opcodes, req->more_opcodes, sizeof(req->opcodes[0]) * req->opcodes_count);
-			free(req->opcodes);
+			free(req->more_opcodes);
 			req->more_opcodes = new_opcodes;
 			req->opcodes_max = new_max;
 		}
 		req->more_opcodes[req->opcodes_count++] = opcode;
-	} else if (req->opcodes_count > sizeof(req->opcodes)/sizeof(req->opcodes[0])) {
+	} else if (req->opcodes_count >= sizeof(req->opcodes)/sizeof(req->opcodes[0])) {
 		req->opcodes_max = req->opcodes_count;
 		req->more_opcodes = (unsigned*)malloc(sizeof(req->opcodes[0]) * req->opcodes_max);
 		memcpy(req->more_opcodes, req->opcodes, sizeof(req->opcodes[0]) * req->opcodes_count);
@@ -146,7 +146,8 @@ static void parse_message(struct TCPRECORD *sess, struct NetFrame *frame, const 
 
 void parse_response_default(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length, unsigned *r_offset)
 {
-	struct POP3RESPONSE *rsp = &sess->layer7.pop3rsp;
+	struct TCP_STREAM *stream = &sess->from_server;
+	struct POP3RESPONSE *rsp = &stream->app.pop3rsp;
 	unsigned offset = *r_offset;
 	unsigned state = rsp->state_inner;
 	unsigned sublen = 0;
@@ -256,11 +257,11 @@ void parse_response_default(struct TCPRECORD *sess, struct NetFrame *frame, cons
 		sublen = 0;
 		while (offset+sublen<length && px[offset+sublen] != '\n' && px[offset] != '>')
 			offset++;
-		strfrag_append(sess->str, px+offset, sublen);
+		strfrag_append(stream->str, px+offset, sublen);
 		offset+=sublen;
 		if (offset<length) {
 			if (px[offset] == '>') {
-				strfrag_append(sess->str, px+offset, 1);
+				strfrag_append(stream->str, px+offset, 1);
 				offset++;
 			}
 
@@ -332,9 +333,9 @@ void parse_response_default(struct TCPRECORD *sess, struct NetFrame *frame, cons
 	}
 }
 
-void parse_pop3_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
+void parse_pop3_response(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
-	struct POP3RESPONSE *rsp = &sess->layer7.pop3rsp;
+	struct POP3RESPONSE *rsp = &stream->app.pop3rsp;
 	unsigned offset = 0;
 	unsigned state_outer = rsp->state_outer;
 	
@@ -347,10 +348,7 @@ void parse_pop3_response(struct TCPRECORD *sess, struct NetFrame *frame, const u
 		state_outer++;
 
 	case S_RESPONSE:
-		if (sess->reverse)
-			rsp->opcode = opcode_remove(&sess->reverse->layer7.pop3req);
-		else
-			rsp->opcode = 0;
+		rsp->opcode = opcode_remove(&sess->to_server.app.pop3req);
 		state_outer++;
 
 	case S_RESPONSE2:
@@ -397,7 +395,8 @@ get_cmd(const void *v_cmd_string, unsigned cmd_length)
 static void 
 parse_cmd_parm(struct TCPRECORD *sess, struct NetFrame *frame, struct StringReassembler *cmd, struct StringReassembler *parm)
 {
-	struct POP3REQUEST *req = &sess->layer7.pop3req;
+	struct TCP_STREAM *stream = &sess->to_server;
+	struct POP3REQUEST *req = &stream->app.pop3req;
 	unsigned opcode;
 	
 	/* Get the command/opcode */
@@ -442,9 +441,10 @@ parse_cmd_parm(struct TCPRECORD *sess, struct NetFrame *frame, struct StringReas
 
 			/* We need to extract the challenge from the reverse
 			 * side of the connection if there is one */
-			if (sess->reverse && sess->reverse->str->length) {
-				challenge = sess->reverse->str->the_string;
-				challenge_length = sess->reverse->str->length;
+
+			if (sess->from_server.str[0].length) {
+				challenge = sess->from_server.str[0].the_string;
+				challenge_length = sess->from_server.str[0].length;
 			} else {
 				challenge = (const unsigned char*)"";
 				challenge_length = 0;
@@ -626,14 +626,14 @@ parse_cmd_parm(struct TCPRECORD *sess, struct NetFrame *frame, struct StringReas
 	strfrag_finish(parm);
 }
 
-void parse_pop3_request(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
+void parse_pop3_request(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
-	struct POP3REQUEST *req = &sess->layer7.pop3req;
+	struct POP3REQUEST *req = &stream->app.pop3req;
 	unsigned offset=0;
 	unsigned state;
 	unsigned sublen;
-	struct StringReassembler *cmd = &sess->str[0];
-	struct StringReassembler *parm = &sess->str[1];
+	struct StringReassembler *cmd = &stream->str[0];
+	struct StringReassembler *parm = &stream->str[1];
 	enum {	S_START, S_LEADING_WHITESPACE, S_COMMAND,
 			S_COMMAND_SPACE, S_PARM, S_UNTIL_EOL};
 

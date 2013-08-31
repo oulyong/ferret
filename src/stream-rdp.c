@@ -29,9 +29,10 @@ struct RDP_PDU
 #define CHECK(offset,length) if (offset >= length) continue
 #define CHECK2(offset,length,state,s) if (offset >= length || state != s) continue
 
-void parse_x224_pdu(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length, struct X224_PDU *pdu, int to_server)
+void parse_x224_pdu(struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length, struct X224_PDU *pdu, int to_server)
 {
-	struct StringReassembler *name = &sess->str[0];
+	struct Ferret *jot = frame->sess->eng->ferret;
+	struct StringReassembler *name = &stream->str[0];
 	unsigned offset = 0;
 	unsigned state = pdu->state;
 	enum {
@@ -179,7 +180,7 @@ void parse_x224_pdu(struct TCPRECORD *sess, struct NetFrame *frame, const unsign
 		}
 		if (offset<length && (px[offset] == '\r' || px[offset] == '\n')) {
 			state = X224_DONE;
-			JOTDOWN(sess->eng->ferret,
+			JOTDOWN(jot,
 				JOT_SRC("ID-IP", frame),
 				JOT_PRINT("RDP-name", name->the_string, name->length),
 				0);
@@ -197,7 +198,7 @@ void parse_x224_pdu(struct TCPRECORD *sess, struct NetFrame *frame, const unsign
 }
 
 
-void parse_tpkt_pdu(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length, struct RDP_PDU *pdu, int to_server)
+void parse_tpkt_pdu(struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length, struct RDP_PDU *pdu, int to_server)
 {
 	unsigned offset = 0;
 	unsigned state = pdu->tpkt_state;
@@ -241,7 +242,7 @@ void parse_tpkt_pdu(struct TCPRECORD *sess, struct NetFrame *frame, const unsign
 			unsigned len = pdu->tpkt_length;
 			if (len > length-offset)
 				len = length-offset;
-			parse_x224_pdu(sess, frame, px+offset, len, &pdu->x224, to_server);
+			parse_x224_pdu(stream, frame, px+offset, len, &pdu->x224, to_server);
 			offset += len;
 			pdu->tpkt_length -= len;
 			if (pdu->tpkt_length == 0)
@@ -256,17 +257,22 @@ void parse_tpkt_pdu(struct TCPRECORD *sess, struct NetFrame *frame, const unsign
 	pdu->tpkt_state = state;
 }
 
-void parse_rdp_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
+void parse_rdp_response(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
-	struct RDP_PDU *pdu = (struct RDP_PDU*)&sess->layer7;
+	struct TCP_STREAM *from_server = &sess->from_server;
+	struct RDP_PDU *pdu = (struct RDP_PDU*)&from_server->app;
+
 	frame->layer7_protocol = LAYER7_RDP;
 
-	parse_tpkt_pdu(sess, frame, px, length, pdu, 0);
+	parse_tpkt_pdu(from_server, frame, px, length, pdu, 0);
 }
-void parse_rdp_request(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
+void parse_rdp_request(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
-	struct RDP_PDU *pdu = (struct RDP_PDU*)&sess->layer7;
+	struct TCP_STREAM *to_server = &sess->to_server;
+	struct RDP_PDU *pdu = (struct RDP_PDU*)&to_server->app;
+
 	frame->layer7_protocol = LAYER7_RDP;
-	parse_tpkt_pdu(sess, frame, px, length, pdu, 0);
+	
+	parse_tpkt_pdu(to_server, frame, px, length, pdu, 0);
 }
 

@@ -297,6 +297,12 @@
     <ClCompile Include="..\..\src\report-nmap.c">
       <Filter>Source Files\i/o</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\smells-tcp.c">
+      <Filter>Source Files\smells</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\stream-unknown.c">
+      <Filter>Source Files\stream app</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ferret.h">

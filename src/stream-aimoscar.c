@@ -207,14 +207,14 @@ Family 0x0045: Unknown (Client Something?)
 
 */
 
-void process_simple_aim_response(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
+void process_simple_aim_response(struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
-	UNUSEDPARM(sess);UNUSEDPARM(frame);UNUSEDPARM(px);UNUSEDPARM(length);
+	UNUSEDPARM(stream);UNUSEDPARM(frame);UNUSEDPARM(px);UNUSEDPARM(length);
 }
 
-void parse_aim_data(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
+void parse_aim_data(struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
-	UNUSEDPARM(sess);UNUSEDPARM(frame);UNUSEDPARM(px);UNUSEDPARM(length);
+	UNUSEDPARM(stream);UNUSEDPARM(frame);UNUSEDPARM(px);UNUSEDPARM(length);
 }
 
 /**
@@ -222,8 +222,9 @@ void parse_aim_data(struct TCPRECORD *sess, struct NetFrame *frame, const unsign
  * already been reassembled by our string frag parser.
  */
 static void
-parse_message_filexfer_rendezvous(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
+parse_message_filexfer_rendezvous(struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
+	struct Ferret *jot = frame->sess->eng->ferret;
 	unsigned offset=0;
 
 	/* skip some fields */
@@ -283,7 +284,7 @@ parse_message_filexfer_rendezvous(struct TCPRECORD *sess, struct NetFrame *frame
 				for (j=0; j<4 && offset+j<length; j++)
 					ip = ip << 8 | px[offset+j];
 
-				JOTDOWN(sess->eng->ferret, 
+				JOTDOWN(jot, 
 					JOT_SRC("ID-IP",frame),
 					JOT_SZ("AIM", "File-Transfer"),
 					JOT_IPv4("Internal-IP", ip),
@@ -297,7 +298,7 @@ parse_message_filexfer_rendezvous(struct TCPRECORD *sess, struct NetFrame *frame
 				for (j=0; j<2 && offset+j<length; j++)
 					port = port << 8 | px[offset+j];
 
-				JOTDOWN(sess->eng->ferret, 
+				JOTDOWN(jot, 
 					JOT_SRC("ID-IP",frame),
 					JOT_SZ("AIM", "File-Transfer"),
 					JOT_NUM("Internal-Port", port),
@@ -317,7 +318,7 @@ parse_message_filexfer_rendezvous(struct TCPRECORD *sess, struct NetFrame *frame
 				len--;
 			}
 
-			JOTDOWN(sess->eng->ferret, 
+			JOTDOWN(jot, 
 				JOT_SRC("ID-IP",frame),
 				JOT_SZ("AIM", "File-Transfer"),
 				JOT_PRINT("Filename", px+offset, len),
@@ -370,10 +371,9 @@ strip_html_tags(const unsigned char *px, unsigned length, unsigned char *dst, un
 	return d;
 }
 
-void decode_message(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length, unsigned is_outgoing)
+void decode_message(struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length, unsigned is_outgoing)
 {
-	struct FerretEngine *eng = sess->eng;
-	struct Ferret *ferret = eng->ferret;
+	struct Ferret *ferret = frame->sess->eng->ferret;
 	const unsigned char *msg = px;
 	unsigned msg_length = length;
 	unsigned msg_offset = 0;
@@ -417,13 +417,13 @@ void decode_message(struct TCPRECORD *sess, struct NetFrame *frame, const unsign
 			if (is_outgoing)
 				JOTDOWN(ferret, 
 					JOT_SRC("ID-IP",frame),
-					JOT_PRINT("AIM-Message-To", sess->str[1].the_string, sess->str[1].length),
+					JOT_PRINT("AIM-Message-To", stream->str[1].the_string, stream->str[1].length),
 					JOT_PRINT("AIM-Message", msg2, msg2_len),
 					0);
 			else
 				JOTDOWN(ferret, 
 					JOT_DST("ID-IP",frame),
-					JOT_PRINT("AIM-Message-From", sess->str[1].the_string, sess->str[1].length),
+					JOT_PRINT("AIM-Message-From", stream->str[1].the_string, stream->str[1].length),
 					JOT_PRINT("AIM-Message", msg2, msg2_len),
 					0);
 
@@ -431,13 +431,13 @@ void decode_message(struct TCPRECORD *sess, struct NetFrame *frame, const unsign
 			if (is_outgoing)
 				JOTDOWN(ferret, 
 					JOT_SRC("ID-IP",frame),
-					JOT_PRINT("AIM-Message-To", sess->str[1].the_string, sess->str[1].length),
+					JOT_PRINT("AIM-Message-To", stream->str[1].the_string, stream->str[1].length),
 					JOT_PRINT("AIM-Message", msg+msg_offset, msg_length-msg_offset),
 					0);
 			else
 				JOTDOWN(ferret, 
 					JOT_DST("ID-IP",frame),
-					JOT_PRINT("AIM-Message-From", sess->str[1].the_string, sess->str[1].length),
+					JOT_PRINT("AIM-Message-From", stream->str[1].the_string, stream->str[1].length),
 					JOT_PRINT("AIM-Message", msg+msg_offset, msg_length-msg_offset),
 					0);
 		}
@@ -449,13 +449,13 @@ void decode_message(struct TCPRECORD *sess, struct NetFrame *frame, const unsign
 		if (is_outgoing)
 			JOTDOWN(ferret, 
 				JOT_SRC("ID-IP",frame),
-				JOT_PRINT("AIM-Message-To", sess->str[1].the_string, sess->str[1].length),
+				JOT_PRINT("AIM-Message-To", stream->str[1].the_string, stream->str[1].length),
 				JOT_PRINT("AIM-Message", msg+msg_offset, msg_length-msg_offset),
 				0);
 		else
 			JOTDOWN(ferret, 
 				JOT_DST("ID-IP",frame),
-				JOT_PRINT("AIM-Message-From", sess->str[1].the_string, sess->str[1].length),
+				JOT_PRINT("AIM-Message-From", stream->str[1].the_string, stream->str[1].length),
 				JOT_PRINT("AIM-Message", msg+msg_offset, msg_length-msg_offset),
 				0);
 	}
@@ -466,11 +466,10 @@ void decode_message(struct TCPRECORD *sess, struct NetFrame *frame, const unsign
  * inside of a FLAP PDU. We identify the precise item by the SNAC-family,
  * SNAC-subtype, and TLV-tag */
 static void 
-parse_tlv(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
+parse_tlv(struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
-	struct FerretEngine *eng = sess->eng;
-	struct Ferret *ferret = eng->ferret;
-	struct AIMPARSER *aim = &sess->layer7.aim;
+	struct Ferret *ferret = frame->sess->eng->ferret;
+	struct AIMPARSER *aim = &stream->app.aim;
 	unsigned h;
 
 	/* This function is going to process the data within a SNAC TLV field. 
@@ -481,7 +480,7 @@ parse_tlv(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *p
 	/* If we are in the middle of parsing the string, just grab
 	 * it in our re-assembly buffer */
 	if (px != NULL) {
-		strfrag_append(sess->str, px, length);
+		strfrag_append(stream->str, px, length);
 		return;
 	}
 	
@@ -491,25 +490,25 @@ parse_tlv(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *p
 	case 0x00170203: /* family=Sign-on, subtype=Logon, tag=client-id-string */
 		JOTDOWN(ferret, 
 			JOT_SRC("ID-IP",frame),
-			JOT_PRINT("AIM-Client-ID", sess->str->the_string, sess->str->length),
+			JOT_PRINT("AIM-Client-ID", stream->str->the_string, stream->str->length),
 			0);
 		break;
 	case 0x0017020e: /* family=Sign-on, subtype=Logon, tag=country */
 		JOTDOWN(ferret, 
 			JOT_SRC("ID-IP",frame),
-			JOT_PRINT("AIM-Country", sess->str->the_string, sess->str->length),
+			JOT_PRINT("AIM-Country", stream->str->the_string, stream->str->length),
 			0);
 		break;
 	case 0x0017020f: /* family=Sign-on, subtype=Logon, tag=language */
 		JOTDOWN(ferret, 
 			JOT_SRC("ID-IP",frame),
-			JOT_PRINT("AIM-Language", sess->str->the_string, sess->str->length),
+			JOT_PRINT("AIM-Language", stream->str->the_string, stream->str->length),
 			0);
 		break;
 	case 0x00170225: /* family=Sign-on, subtype=Logon, tag=password hash */
 		JOTDOWN(ferret, 
 			JOT_SRC("ID-IP",frame),
-			JOT_HEXSTR("AIM-Password-Hash", sess->str->the_string, sess->str->length),
+			JOT_HEXSTR("AIM-Password-Hash", stream->str->the_string, stream->str->length),
 			0);
 		break;
 		break;
@@ -521,25 +520,25 @@ parse_tlv(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *p
 		 * challenge and password to the real server he wants to connect to */
 		JOTDOWN(ferret, 
 			JOT_SRC("ID-IP",frame),
-			JOT_PRINT("AIM-Screen-Name", sess->str->the_string, sess->str->length),
+			JOT_PRINT("AIM-Screen-Name", stream->str->the_string, stream->str->length),
 			0);
 		break;
 	case 0x00170301: /* family=Logon, subtype=Reply, tag=screen-name  */
 		JOTDOWN(ferret, 
 			JOT_DST("ID-IP",frame), /* logon reply screen name sent from server*/
-			JOT_PRINT("AIM-Screen-Name", sess->str->the_string, sess->str->length),
+			JOT_PRINT("AIM-Screen-Name", stream->str->the_string, stream->str->length),
 			0);
 		break;
 	case 0x00170311: /* family=Logon, subtype=Reply, tag=email  */
 		JOTDOWN(ferret, 
 			JOT_DST("ID-IP",frame), /* logon reply screen name sent from server*/
-			JOT_PRINT("e-mail", sess->str->the_string, sess->str->length),
+			JOT_PRINT("e-mail", stream->str->the_string, stream->str->length),
 			0);
 		break;
 	case 0x00170349: /* family=Logon, subtype=Reply, tag=auth-protocol  */
 		JOTDOWN(ferret, 
 			JOT_DST("ID-IP",frame), /* logon reply screen name sent from server*/
-			JOT_HEXSTR("AIM-digest-sig", sess->str->the_string, sess->str->length),
+			JOT_HEXSTR("AIM-digest-sig", stream->str->the_string, stream->str->length),
 			0);
 		break;
 	case 0x00170700: /*AIM Sign-on(0x17), Sign-on Reply(7), Challenge(10)*/
@@ -552,7 +551,7 @@ parse_tlv(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *p
 		 * process in case we want to log the hashes */
 		JOTDOWN(ferret, 
 			JOT_SRC("ID-IP",frame),
-			JOT_PRINT("AIM-Challenge", sess->str->the_string, sess->str->length),
+			JOT_PRINT("AIM-Challenge", stream->str->the_string, stream->str->length),
 			0);
 		break;
 	case 0x0017038e: /* authorization cookie */
@@ -560,91 +559,91 @@ parse_tlv(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *p
 		 * this cookie the ability to log onto any AIM service */
 		JOTDOWN(ferret, 
 			JOT_DST("ID-IP",frame),
-			JOT_HEXSTR("AIM-Auth-Cookie", sess->str->the_string, sess->str->length),
+			JOT_HEXSTR("AIM-Auth-Cookie", stream->str->the_string, stream->str->length),
 			0);
 		break;	
 	case  0x00030b00: /* INCOMING oncoming buddy name */
 	case  0x00020600:
-		if (sess->str->length) {
+		if (stream->str->length) {
 			JOTDOWN(ferret, 
 				JOT_DST("ID-IP",frame),
-				JOT_PRINT("AIM-Buddy", sess->str->the_string, sess->str->length),
+				JOT_PRINT("AIM-Buddy", stream->str->the_string, stream->str->length),
 				0);
 			JOTDOWN(ferret, 
 				JOT_DST("ID-IP",frame),
-				JOT_PRINT("friend", sess->str->the_string, sess->str->length),
+				JOT_PRINT("friend", stream->str->the_string, stream->str->length),
 				0);
 		}
 		break;
 	case 0x00021500: /* OUTGOING user info query*/
-		if (sess->str->length) {
+		if (stream->str->length) {
 			JOTDOWN(ferret, 
 				JOT_SRC("ID-IP",frame),
-				JOT_PRINT("AIM-Buddy", sess->str->the_string, sess->str->length),
+				JOT_PRINT("AIM-Buddy", stream->str->the_string, stream->str->length),
 				0);
 			JOTDOWN(ferret, 
 				JOT_SRC("ID-IP",frame),
-				JOT_PRINT("friend", sess->str->the_string, sess->str->length),
+				JOT_PRINT("friend", stream->str->the_string, stream->str->length),
 				0);
 		}
 		break;
 	case 0x00040700: /* Messaging, incoming */
-		if (sess->str->length) {
+		if (stream->str->length) {
 			JOTDOWN(ferret, 
 				JOT_DST("ID-IP",frame),
-				JOT_PRINT("AIM-Buddy", sess->str->the_string, sess->str->length),
+				JOT_PRINT("AIM-Buddy", stream->str->the_string, stream->str->length),
 				0);
 			JOTDOWN(ferret, 
 				JOT_DST("ID-IP",frame),
-				JOT_PRINT("friend", sess->str->the_string, sess->str->length),
+				JOT_PRINT("friend", stream->str->the_string, stream->str->length),
 				0);
 
-			strfrag_xfer(sess->str+1, sess->str);
+			strfrag_xfer(stream->str+1, stream->str);
 		}
 		break;
 	case 0x00040702: /* Messaging, INCOMING */
-		decode_message(sess, frame, sess->str[0].the_string, sess->str[0].length, 0);
+		decode_message(stream, frame, stream->str[0].the_string, stream->str[0].length, 0);
 		break;
 	case 0x00040600: /* Messaging, outgoing */
-		if (sess->str->length) {
+		if (stream->str->length) {
 			JOTDOWN(ferret, 
 				JOT_SRC("ID-IP",frame),
-				JOT_PRINT("AIM-Buddy", sess->str->the_string, sess->str->length),
+				JOT_PRINT("AIM-Buddy", stream->str->the_string, stream->str->length),
 				0);
 			JOTDOWN(ferret, 
 				JOT_SRC("ID-IP",frame),
-				JOT_PRINT("friend", sess->str->the_string, sess->str->length),
+				JOT_PRINT("friend", stream->str->the_string, stream->str->length),
 				0);
 
-			strfrag_xfer(sess->str+1, sess->str);
+			strfrag_xfer(stream->str+1, stream->str);
 		}
 		break;
 	case 0x00040602: /* Messaging, outgoing */
-		decode_message(sess, frame, sess->str[0].the_string, sess->str[0].length, 1);
+		decode_message(stream, frame, stream->str[0].the_string, stream->str[0].length, 1);
 		break;
 	case 0x00020604: /* Buddy Info - away message */
-		if (sess->str->length) {
+		if (stream->str->length) {
 			JOTDOWN(ferret, 
 				JOT_DST("ID-IP",frame),
-				JOT_PRINT("AIM-Buddy", sess->str[1].the_string, sess->str[1].length),
-				JOT_PRINT("Away-Message", sess->str[0].the_string, sess->str[0].length),
+				JOT_PRINT("AIM-Buddy", stream->str[1].the_string, stream->str[1].length),
+				JOT_PRINT("Away-Message", stream->str[0].the_string, stream->str[0].length),
 				0);
 		}
 		break;
 	case 0x00041400: /* typing, outgoing */
-		if (sess->str->length) {
+		if (stream->str->length) {
 			JOTDOWN(ferret, 
 				JOT_SRC("ID-IP",frame),
-				JOT_PRINT("AIM-Buddy", sess->str->the_string, sess->str->length),
+				JOT_PRINT("AIM-Buddy", stream->str->the_string, stream->str->length),
 				0);
 			JOTDOWN(ferret, 
 				JOT_SRC("ID-IP",frame),
-				JOT_PRINT("friend", sess->str->the_string, sess->str->length),
+				JOT_PRINT("friend", stream->str->the_string, stream->str->length),
 				0);
 		}
 		break;
 	case 0x00040605: /* File transfer */
-		parse_message_filexfer_rendezvous(sess, frame, sess->str->the_string, sess->str->length);
+		parse_message_filexfer_rendezvous(stream, frame, stream->str->the_string, stream->str->length);
 		break;
 
 	case 0x00040701:
@@ -667,11 +666,11 @@ parse_tlv(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *p
 		 * remember this??? */
 		break;
 	case 0x00130731:
-		if (sess->str[1].length && sess->str[0].length) {
+		if (stream->str[1].length && stream->str[0].length) {
 			JOTDOWN(ferret, 
 				JOT_DST("ID-IP",frame),
-				JOT_PRINT("AIM-Buddy", sess->str[1].the_string, sess->str[1].length),
-				JOT_PRINT("AIM-Description", sess->str[0].the_string, sess->str[0].length),
+				JOT_PRINT("AIM-Buddy", stream->str[1].the_string, stream->str[1].length),
+				JOT_PRINT("AIM-Description", stream->str[0].the_string, stream->str[0].length),
 				0);
 		}
 		break;
@@ -739,12 +738,13 @@ parse_tlv(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *p
 		}
 		break;
 	}
-	strfrag_finish(sess->str);
+	strfrag_finish(stream->str);
 }
 
 static unsigned
-parse_ssi_entry(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
+parse_ssi_entry(struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
+	struct Ferret *jot = frame->sess->eng->ferret;
 	enum {
 		SSI_BUDDYLEN_HI, SSI_BUDDYLEN_LOW, SSI_BUDDY, SSI_BUDDY_DONE,
 		SSI_GROUPID_HI, SSI_GROUPID_LO,
@@ -758,7 +758,7 @@ parse_ssi_entry(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned c
 		SNAC_TLV_DONE,
 		SNAC_IGNORE,
 	};
-	struct AIMPARSER *aim = &sess->layer7.aim;
+	struct AIMPARSER *aim = &stream->app.aim;
 	unsigned offset = 0;
 	
 	
@@ -772,8 +772,8 @@ parse_ssi_entry(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned c
 		aim->tlv_len <<= 8;
 		aim->tlv_len |= px[offset++];
 		aim->ssi_state++;
-		strfrag_init(sess->str);
-		strfrag_init(sess->str+1);
+		strfrag_init(stream->str);
+		strfrag_init(stream->str+1);
 		break;
 	case SSI_BUDDY:
 		if (aim->tlv_len) {
@@ -782,7 +782,7 @@ parse_ssi_entry(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned c
 				sublen = aim->tlv_len;
 			else
 				sublen = length-offset;
-			strfrag_append(sess->str+1, px+offset, sublen);
+			strfrag_append(stream->str+1, px+offset, sublen);
 			offset += sublen;
 			aim->tlv_len -= sublen;
 		}
@@ -813,25 +813,25 @@ parse_ssi_entry(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned c
 		aim->ssi_buddy_type <<= 8;
 		aim->ssi_buddy_type |= px[offset++];
 		aim->ssi_state++;
-		if (sess->str[1].length)
+		if (stream->str[1].length)
 		switch (aim->ssi_buddy_type) {
 		case 0x0000: /* individual */
 			/* TODO: I should also remember what group it is in */
 			if (aim->ssi_group)
-				JOTDOWN(sess->eng->ferret, 
+				JOTDOWN(jot, 
 					JOT_DST("ID-IP",frame),
-					JOT_PRINT("AIM-Buddy", sess->str[1].the_string, sess->str[1].length),
+					JOT_PRINT("AIM-Buddy", stream->str[1].the_string, stream->str[1].length),
 					JOT_PRINT("AIM-Group", aim->ssi_group->str, aim->ssi_group->length),
 					0);
 			else
-				JOTDOWN(sess->eng->ferret, 
+				JOTDOWN(jot, 
 					JOT_DST("ID-IP",frame),
-					JOT_PRINT("AIM-Buddy", sess->str[1].the_string, sess->str[1].length),
+					JOT_PRINT("AIM-Buddy", stream->str[1].the_string, stream->str[1].length),
 					0);
 			break;
 		case 0x0001: /* group */
-			aim->ssi_group = stringtab_lookup(sess->eng->stringtab, sess->str[1].the_string, sess->str[1].length);
-			strfrag_finish(&sess->str[1]);
+			aim->ssi_group = stringtab_lookup(frame->sess->eng->stringtab, stream->str[1].the_string, stream->str[1].length);
+			strfrag_finish(&stream->str[1]);
 			break;
 		default:
 			/*TODO: add SAMPLE */
@@ -857,7 +857,7 @@ parse_ssi_entry(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned c
 		while (offset<length && aim->ssi_len > 0)
 		switch (aim->ssi_state) {
 		case SNAC_TLV_START:
-			strfrag_init(sess->str);
+			strfrag_init(stream->str);
 			aim->ssi_state++;
 			break;
 		case SNAC_TLV_TAG_HI:
@@ -893,7 +893,7 @@ parse_ssi_entry(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned c
 				if (sublen > aim->ssi_len)
 					sublen = aim->ssi_len;
 
-				parse_tlv(sess, frame, px+offset, sublen);
+				parse_tlv(stream, frame, px+offset, sublen);
 
 				offset += sublen;
 				aim->tlv_len -= sublen;
@@ -910,7 +910,7 @@ parse_ssi_entry(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned c
 			if (aim->tlv_len == 0 || aim->ssi_len == 0) {
 				/* If done parsing the TLV, then do a 'close' operation by
 				 * sending a NULL data pointer */
-				parse_tlv(sess, frame, 0, 0);
+				parse_tlv(stream, frame, 0, 0);
 				aim->ssi_state = SNAC_TLV_DONE;
 			}
 			break;
@@ -931,7 +931,7 @@ parse_ssi_entry(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned c
 }
 
 static void 
-parse_aim_snac(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
+parse_aim_snac(struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
 	enum {
 		SNAC_START,
@@ -959,7 +959,7 @@ parse_aim_snac(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned ch
 
 		SNAC_SKIP_TO_BUDDY,SNAC_SKIP_TO_TLV,
 	};
-	struct AIMPARSER *aim = &sess->layer7.aim;
+	struct AIMPARSER *aim = &stream->app.aim;
 	unsigned offset = 0;
 
 	/* Do the 'close' fucntion that indicates we we've reached the end
@@ -1080,7 +1080,7 @@ parse_aim_snac(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned ch
 			aim->snac_state = SNAC_IGNORE;
 		break;
 	case SNAC_TLV_START:
-		strfrag_init(sess->str);
+		strfrag_init(stream->str);
 		aim->snac_state++;
 		break;
 	case SNAC_TLV_TAG_HI:
@@ -1110,7 +1110,7 @@ parse_aim_snac(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned ch
 			else
 				sublen = length-offset;
 
-			parse_tlv(sess, frame, px+offset, sublen);
+			parse_tlv(stream, frame, px+offset, sublen);
 
 			offset += sublen;
 			aim->tlv_len -= sublen;
@@ -1126,7 +1126,7 @@ parse_aim_snac(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned ch
 		if (aim->tlv_len == 0) {
 			/* If done parsing the TLV, then do a 'close' operation by
 			 * sending a NULL data pointer */
-			parse_tlv(sess, frame, 0, 0);
+			parse_tlv(stream, frame, 0, 0);
 			aim->snac_state = SNAC_TLV_DONE;
 		}
 		break;
@@ -1160,7 +1160,7 @@ parse_aim_snac(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned ch
 		if (aim->tlv_len == 0) {
 			aim->snac_state = SNAC_ONCOMING_PRE_BUDDY1; 
 		} else {
-			strfrag_init(sess->str);
+			strfrag_init(stream->str);
 			aim->snac_state++;
 		}
 		break;
@@ -1171,17 +1171,17 @@ parse_aim_snac(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned ch
 				sublen = aim->tlv_len;
 			else
 				sublen = length-offset;
-			strfrag_append(sess->str, px+offset, sublen);
+			strfrag_append(stream->str, px+offset, sublen);
 			offset += sublen;
 			aim->tlv_len -= sublen;
 		}
 		if (aim->tlv_len == 0) {
 			/* Save the buddy name */
-			strfrag_copy(&sess->str[1], &sess->str[0]);
+			strfrag_copy(&stream->str[1], &stream->str[0]);
 
 			/* If done parsing the TLV, then do a 'close' operation by
 			 * sending a NULL data pointer */
-			parse_tlv(sess, frame, 0, 0);
+			parse_tlv(stream, frame, 0, 0);
 
 
 			switch (aim->pdu.family<<16 | aim->pdu.subtype) {
@@ -1234,7 +1234,7 @@ parse_aim_snac(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned ch
 			 * fragment. Therefore, the returned 'sublen' may be smaller than
 			 * the one passed into it */
 			aim->ssi_state = 0;
-			sublen = parse_ssi_entry(sess, frame, px+offset, length-offset);
+			sublen = parse_ssi_entry(stream, frame, px+offset, length-offset);
 
 			offset += sublen;
 
@@ -1244,8 +1244,8 @@ parse_aim_snac(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned ch
 		/* there is some more info past the entries, but just ingore it */
 		if (aim->ssi_obj_count == 0) {
 			aim->snac_state = SNAC_IGNORE;
-			strfrag_finish(sess->str+0);
-			strfrag_finish(sess->str+1);
+			strfrag_finish(stream->str+0);
+			strfrag_finish(stream->str+1);
 		}
 		break;
 	case SNAC_SKIP_TO_BUDDY:
@@ -1333,7 +1333,8 @@ unsigned smellslike_aim_oscar(const unsigned char *px, unsigned length)
 	 * to be pretty sure */
 	return 1;
 }
-void parse_aim_oscar(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length)
+
+void parse_aim_oscar(struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
 	enum {
 		FLAP_START,
@@ -1342,7 +1343,7 @@ void parse_aim_oscar(struct TCPRECORD *sess, struct NetFrame *frame, const unsig
 		FLAP_DATA,
 	};
 	
-	struct AIMPARSER *aim = &sess->layer7.aim;
+	struct AIMPARSER *aim = &stream->app.aim;
 	unsigned offset=0;
 
 	frame->layer7_protocol = LAYER7_AIM;
@@ -1424,10 +1425,10 @@ void parse_aim_oscar(struct TCPRECORD *sess, struct NetFrame *frame, const unsig
 			 * channel-number and state info */
 			switch (aim->pdu.channel) {
 			case 2: /*SNAC*/
-				parse_aim_snac(sess, frame, px+offset, sublen);
+				parse_aim_snac(stream, frame, px+offset, sublen);
 				break;
 			default:
-				parse_aim_data(sess, frame, px+offset, sublen);
+				parse_aim_data(stream, frame, px+offset, sublen);
 				break;
 			}
 
@@ -1448,4 +1449,13 @@ void parse_aim_oscar(struct TCPRECORD *sess, struct NetFrame *frame, const unsig
 		break;
 
 	}
+}
+
+void parse_aim_oscar_to_server(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
+{
+	parse_aim_oscar(stream, frame, px, length);
+}
+void parse_aim_oscar_from_server(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
+{
+	parse_aim_oscar(stream, frame, px, length);
 }
