@@ -166,9 +166,10 @@ dns_resolve_alias(struct NetFrame *frame, const unsigned char *px, unsigned leng
 	for (i=dns->question_count; i<dns->record_count; i++) {
 		struct DNSRECORD *rec = &dns->records[i];
 		char name[256];
-		unsigned name_length;
+		//unsigned name_length;
 
-		name_length = dns_extract_name(frame, px, length, rec->name_offset, name, sizeof(name));
+        /* [name lenggth] */
+		dns_extract_name(frame, px, length, rec->name_offset, name, sizeof(name));
 
 		if ((rec->type != 1 && rec->type != 5)|| (rec->clss&0x7FFF) != 1)
 			continue;
@@ -178,7 +179,8 @@ dns_resolve_alias(struct NetFrame *frame, const unsigned char *px, unsigned leng
 			case 1:
 				return ex32be(px+rec->rdata_offset);
 			case 5:
-				name_length = dns_extract_name(frame, px, length, rec->rdata_offset, name, sizeof(name));
+                /* [name length] */
+				dns_extract_name(frame, px, length, rec->rdata_offset, name, sizeof(name));
 				if (depth > 10)
 					FRAMERR(frame, "dns: too much recursion, alias=\"%s\"\n", alias);
 				else

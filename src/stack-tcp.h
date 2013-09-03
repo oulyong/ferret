@@ -136,6 +136,56 @@ struct MSNREQUEST {
 	unsigned char toname[64];
 };
 
+#define STREAM_UNKNOWN_BUF_SIZE 128
+struct UNKNOWN {
+    unsigned ac_state;
+    unsigned short proto_state;
+    unsigned char buf_len;
+    unsigned char buf[STREAM_UNKNOWN_BUF_SIZE];
+};
+
+struct BITTORRENT_TCP {
+    uint64_t extensions;
+    unsigned char hash_dictionary[20];
+    unsigned char peer_id[20];
+    unsigned msg_type;
+};
+
+struct SSL_SERVER_HELLO {
+    unsigned state;
+    unsigned remaining;
+    unsigned timestamp;
+    unsigned short cipher_suite;
+    unsigned char compression_method;
+    unsigned char version_major;
+    unsigned char version_minor;
+};
+
+struct SSLRECORD {
+    unsigned char content_type;
+    unsigned char version_major;
+    unsigned char version_minor;
+
+    struct {
+        unsigned state;
+        unsigned char type;
+        unsigned remaining;
+    } record;
+
+    union {
+        struct {
+            /* all these structs should start with state */
+            unsigned state;
+        } all;
+        struct SSL_SERVER_HELLO server_hello;
+    } x;
+
+};
+
+struct SSHBANNER {
+    unsigned banner_length;
+    char banner[64];
+};
 
 /**
  * This function forces a malloc() to store the string. The TCP engine
@@ -196,6 +246,10 @@ struct TCP_STREAM {
 		struct POP3RESPONSE pop3rsp;
 		struct MSNREQUEST msnreq;
 		struct YMSG ymsg;
+        struct UNKNOWN unknown;
+        struct BITTORRENT_TCP bittorrent;
+        struct SSLRECORD ssl;
+        struct SSHBANNER ssh;
 	} app;
 };
 

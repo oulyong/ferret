@@ -69,12 +69,12 @@ void report_fanout_set_parameter(struct Ferret *ferret, const char *name, const 
 	if (strcmp(name, "addr") == 0) {
 		struct ParsedIpAddress addr;
 		unsigned offset = 0;
-		unsigned is_exclude = 0;
+		//unsigned is_exclude = 0;
 		struct filter *filters;
 		unsigned *filter_count;
 
 		if (value[0] == '!') {
-			is_exclude = 1;
+			//is_exclude = 1;
 			filters = ferret->report_fanout->exclude_filters;
 			filter_count = &ferret->report_fanout->exclude_count;
 			value++;

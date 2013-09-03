@@ -3,7 +3,7 @@
 
 struct Field
 {
-	const char *px;
+	const unsigned char *px;
 	unsigned length;
 };
 

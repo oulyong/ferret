@@ -103,14 +103,14 @@ void netbios_parse_question_record(struct Ferret *ferret, struct NetFrame *frame
 							struct DNSRECORD *rec, struct DNS *dns)
 {
 	char name[512]; /* reserve a longer name than the max theoretical limit */
-	unsigned name_length;
+	//unsigned name_length;
 	char netbios_name[512];
-	unsigned netbios_name_length;
+	//unsigned netbios_name_length;
 	unsigned ip_address;
 
 	UNUSEDPARM(dns);
 
-	name_length = dns_extract_name(frame, px, length, rec->name_offset, name, sizeof(name));
+	dns_extract_name(frame, px, length, rec->name_offset, name, sizeof(name));
 
 	switch (rec->type<<16 | rec->clss) {
 	case TYPECLASS(0x20,1): /* type=NETBIOS, class=INTERNET*/
@@ -120,7 +120,7 @@ void netbios_parse_question_record(struct Ferret *ferret, struct NetFrame *frame
 		}
 		ip_address = ex32be(px+rec->rdata_offset);
 			
-		netbios_name_length = translate_netbios_name(frame, name, netbios_name, sizeof(netbios_name));
+		translate_netbios_name(frame, name, netbios_name, sizeof(netbios_name));
 
 		JOTDOWN(ferret,
 			JOT_SZ("proto","NETBIOS"),
@@ -144,14 +144,14 @@ void netbios_parse_resource_record(struct Ferret *ferret, struct NetFrame *frame
 							struct DNSRECORD *rec, struct DNS *dns)
 {
 	char name[512]; /* reserve a longer name than the max theoretical limit */
-	unsigned name_length;
+	//unsigned name_length;
 	char name2[512]; /* reserve a longer name than the max theoretical limit */
 	unsigned name2_length;
 	unsigned ip_address;
 	unsigned offset = rec->rdata_offset;
 	//unsigned offset_max = MIN(rec->rdata_offset+rec->rdata_length, length);
 
-	name_length = dns_extract_name(frame, px, length, rec->name_offset, name, sizeof(name));
+	dns_extract_name(frame, px, length, rec->name_offset, name, sizeof(name));
 	name2_length = translate_netbios_name(frame, name, name2, sizeof(name2));
 
 	switch (rec->type<<16 | (rec->clss&0x7fFF)) {

@@ -105,15 +105,18 @@ void
 asn1_string(struct NetFrame *frame, const unsigned char *px, unsigned length, unsigned *r_offset, const unsigned char **r_str, unsigned *r_str_length)
 {
 	unsigned len;
-	unsigned tag;
+	//unsigned tag;
 
 	if (*r_offset >= length)
 		return;
 	
-	tag = asn1_tag(px, length, r_offset);
+    /* [tag] */
+	asn1_tag(px, length, r_offset);
 
+    /* [length] */
 	len = asn1_length(frame, px, length, r_offset);
 
+    /* [value] */
 	*r_str = px + *r_offset;
 	*r_str_length = len;
 

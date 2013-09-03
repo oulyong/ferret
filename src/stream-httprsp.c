@@ -273,12 +273,13 @@ void value_CONTENT_TYPE(struct TCPRECORD *sess, struct NetFrame *frame, const un
 	}
 }
 
-void value_SERVER(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned char *px, unsigned length, void *vreq)
+void value_SERVER(struct TCPRECORD *sess, struct NetFrame *frame, 
+    const unsigned char *px, unsigned length, void *vreq)
 {
 	struct HTTPRESPONSE *req = (struct HTTPRESPONSE *)vreq;
 	value_DEFAULT(sess, frame, px, length, req);
 	if (req->value_state) {
-		const char *buf = (const char*)req->tmp;
+		const unsigned char *buf = req->tmp;
 		unsigned buf_length = req->tmp_length;
 
 		record_listening_port(
@@ -288,7 +289,7 @@ void value_SERVER(struct TCPRECORD *sess, struct NetFrame *frame, const unsigned
 			LISTENING_ON_TCP,
 			frame->src_port,
 			"HTTP",
-			(const char *)buf,
+			buf,
 			buf_length);
 	}
 }
@@ -336,7 +337,8 @@ void parse_http_response_content(struct TCPRECORD *sess, struct NetFrame *frame,
 	UNUSEDPARM(sess);UNUSEDPARM(frame);UNUSEDPARM(px);UNUSEDPARM(length);
 }
 
-void parse_http_response(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
+void
+stream_http_fromserver(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
 	struct PARSE *parse = &stream->parse;
 	struct HTTPRESPONSE *req = &stream->app.httprsp;
@@ -502,6 +504,7 @@ Server: lighttpd/1.4.11.1*/
 			/* Find the length of the segment to send to the value parser */
 			while (offset+sublen<length && px[offset+sublen] != '\n' && px[offset+sublen] != '\r')
 				sublen++;
+
 			req->value_parser(sess, frame, px+offset, sublen, req);
 			offset += sublen;
 

@@ -12,6 +12,7 @@ struct Ferret;
 struct FerretEngine;
 struct NetFrame;
 struct TCPRECORD;
+struct TCP_STREAM;
 
 void process_frame(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
 
@@ -51,9 +52,12 @@ void process_snmp(struct Ferret *ferret, struct NetFrame *frame, const unsigned 
 void process_upnp_response(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
 void process_srvloc(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
 void process_isakmp(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
-void process_bittorrent_udp(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void process_bittorrent_XYZ(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void process_bittorrent_DHT(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void process_bittorrent_uTP(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
 void process_ldap(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
 void parse_tivo_broadcast(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void parse_dhcpv6(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
 
 void process_rtp_avp(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
 void process_rtp_rtcp(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length);
@@ -65,14 +69,23 @@ void parse_jpeg_ichat_image(struct Ferret *ferret, struct NetFrame *frame, const
 
 
 
-void parse_http_request(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
-void parse_http_response(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void stream_http_toserver(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void stream_http_fromserver(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
 
-void parse_ssl_request(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
-void parse_ssl_response(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void stream_ssl_toserver(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void stream_ssl_fromserver(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
 
-void parse_dcerpc_request(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
-void parse_dcerpc_response(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void stream_rtsp_toserver(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void stream_rtsp_fromserver(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+
+void stream_ssh_toserver(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void stream_ssh_fromserver(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+
+void stream_bittorrent_toserver(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void stream_bittorrent_fromserver(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+
+void stream_dcerpc_toserver(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
+void stream_dcerpc_fromserver(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
 
 void parse_smb_request(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
 void parse_smb_response(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
@@ -97,6 +110,9 @@ void stack_tcp_ymsg_client_request(struct TCPRECORD *sess, struct TCP_STREAM *st
 void stack_tcp_ymsg_server_response(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
 
 
+unsigned smellslike_bittorrent_XYZ(const unsigned char *px, unsigned length);
+unsigned smellslike_bittorrent_DHT(const unsigned char *px, unsigned length);
+unsigned smellslike_bittorrent_uTP(const unsigned char *px, unsigned length);
 void stream_to_server_unknown(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
 void stream_from_server_unknown(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
 

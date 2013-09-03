@@ -11,6 +11,7 @@
 
 #include "stack-extract.h"
 #include "stack-netframe.h"
+#include "stream-unknown.h"
 #include "util-housekeeping.h"
 #include "util-hexval.h"
 #include "platform.h"
@@ -148,6 +149,7 @@ config_echo(struct Ferret *ferret, FILE *fp)
 	LOG_BOOL("report.stats", ferret->cfg.report_stats2);
 	LOG_NUM("report.hosts", ferret->cfg.report_hosts);
 	LOG_NUM("report.nmap", ferret->cfg.report_nmap);
+	LOG_NUM("report.suites", ferret->cfg.report_ciphersuites);
 	LOG_NUM("report.fanout", ferret->cfg.report_fanout);
 	LOG_NUM("report.fanin", ferret->cfg.report_fanin);
 	LOG_BOOL("config.quiet", ferret->cfg.quiet);
@@ -160,6 +162,7 @@ config_echo(struct Ferret *ferret, FILE *fp)
 			i,
 			mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 	}
+
 }
 
 
@@ -365,8 +368,12 @@ ferret_set_parameter(struct Ferret *ferret, const char *name, const char *value,
 			ferret->cfg.report_fanin = 20;
 		else if (memcmp(value, "filter", 4)==0)
 			ferret->cfg.report_filter_stats = 1;
+		else if (memcmp(value, "suites", 6)==0)
+			ferret->cfg.report_ciphersuites = 20;
 		else
 			fprintf(stderr, "cfg: unknown: -%s=%s\n", name, value);
+	} else if (MATCH("regress")) {
+        ferret->is_regress = 1;
 	} else if (MATCH("sniffer")) {
 		if (MATCH("dir")) {
 			const char *directory_name = value;
@@ -490,6 +497,8 @@ engine_create(struct Ferret *ferret)
 	 */
 	engine->housekeeper = housekeeping_create();
 
+    engine->tcp_smells = tcpsmellslike_create_engine();
+
 	return engine;
 }
 
@@ -531,6 +540,8 @@ void engine_destroy(struct FerretEngine *engine)
 	engine->housekeeper = NULL;
 
 	stringtab_clear(engine->stringtab);
+
+    tcpsmellslike_destroy_engine(engine->tcp_smells);
 
 	free(engine);
 }

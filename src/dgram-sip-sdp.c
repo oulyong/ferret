@@ -59,13 +59,13 @@ sdp_next_header(const char name, const unsigned char *px, unsigned length, struc
 		while (value_offset < line_length && isspace(px[offset+value_offset]))
 			value_offset++;
  
-		field->px = (const char*)px+offset+value_offset;
+		field->px = px+offset+value_offset;
 		field->length = line_length-value_offset;
 
 		return 1; /* found */
 	}
 
-	field->px = "";
+	field->px = (const unsigned char*)"";
 	field->length = 0;
 	return 0;
 }
@@ -99,6 +99,7 @@ field_next(const struct Field *field, unsigned *r_offset, struct Field *tok)
 }
 
 
+#if 0
 /****************************************************************************
  ****************************************************************************/
 static int
@@ -114,6 +115,7 @@ field_has_prefix(const char *prefix, const struct Field *field, unsigned offset)
 		return 0;
 	return 1;
 }
+#endif
 
 /****************************************************************************
  ****************************************************************************/
@@ -208,7 +210,7 @@ a=ptime:20
 				struct ParsedIpAddress ip;
 
 				field_next(field, &offset, addr);
-				if (parse_ipv4_address(addr->px, &offset2, addr->length, &ip)) {
+				if (parse_ipv4_address((const char*)addr->px, &offset2, addr->length, &ip)) {
 					connection_ip_address = ip.address[0]<<24 | ip.address[1]<<16 | ip.address[2]<<8 | ip.address[3]<<0;
 				}
 			} else if (field_equals_nocase("IP6",addr_type)) {
@@ -251,9 +253,9 @@ a=ptime:20
 
 		if (protocol_type->length) {
 			unsigned offset2 = 0;
-			uint64_t port_number;
+			//uint64_t port_number;
 
-			port_number = field_next_number(port_field, &offset2);
+			/*port_number = */field_next_number(port_field, &offset2);
 		}
 
 	}

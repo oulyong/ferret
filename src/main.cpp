@@ -686,11 +686,10 @@ void main_help()
 void main_set_wifi_defaults(struct Ferret *ferret, const char *channel)
 {
 	pcap_if_t *d;
-	unsigned i=0;
 	char errbuf[PCAP_ERRBUF_SIZE];
 	const char *desired_interface=0;
 	unsigned desired_level=0;
-
+    
 	if (!pcap.is_available) {
 		printf("FAILURE: can't link to pcap library\n");
 		exit(1);
@@ -712,7 +711,7 @@ void main_set_wifi_defaults(struct Ferret *ferret, const char *channel)
 	 * An adapter with the name "ath0" is more attractive than one
 	 * with the name "wifi0".
 	 */	
-	for(d=alldevs, i=0; d; d=d->next) {
+	for(d=alldevs; d; d=d->next) {
 		if (strstr(d->name, "airpcap") && desired_level < 100) {
 			desired_level = 100;
 			desired_interface = d->name;
@@ -765,7 +764,9 @@ void main_set_wifi_defaults(struct Ferret *ferret, const char *channel)
 static void 
 main_args_operation(const char *op, struct Ferret *ferret)
 {
-	if (memcmp("fanin", op, 5) == 0)
+	if (memcmp("regress", op, 7) == 0)
+        ferret_set_parameter(ferret, "regress", "true", 0);
+	else if (memcmp("fanin", op, 5) == 0)
 		ferret_set_parameter(ferret, "report.fanin", "100", 0);
 	else if (memcmp("fanout", op, 5) == 0)
 		ferret_set_parameter(ferret, "report.fanout", "100", 0);
@@ -773,8 +774,12 @@ main_args_operation(const char *op, struct Ferret *ferret)
 		ferret_set_parameter(ferret, "report.host", "100", 0);
 	else if (memcmp("stats1", op, 6) == 0)
 		ferret_set_parameter(ferret, "statistics", "true", 0);
+	else if (memcmp("stats", op, 6) == 0)
+		ferret_set_parameter(ferret, "statistics", "true", 0);
 	else if (memcmp("protos", op, 5) == 0)
 		ferret_set_parameter(ferret, "report", "stat", 0);
+	else if (memcmp("suites", op, 5) == 0)
+		ferret_set_parameter(ferret, "report", "suites", 0);
 	else if (memcmp("nmap", op, 4) == 0)
 		ferret_set_parameter(ferret, "report", "nmap", 0);
 	else {
@@ -948,6 +953,8 @@ main_args(int argc, char **argv, struct Ferret *ferret)
 
 extern "C" void t_leak_check(void);
 
+extern "C" int smells_selftest_bittorrent_dht(void);
+
 /****************************************************************************
  ****************************************************************************/
 #ifdef __GNUC__
@@ -982,6 +989,12 @@ int FERRET_MAIN(int argc, char **argv)
 	char errbuf[PCAP_ERRBUF_SIZE];
 	struct Ferret *ferret;
 
+#if 0
+    const char *myargv[] = {"ferret", "protos", "-r", "profile.pcap", 0};
+    argc = 4;
+    argv = (char**)myargv;
+#endif
+
 	/* Print backtraces when we crash */
 #ifdef __GNUC__
 	  //signal(SIGSEGV, handle_segfault);
@@ -989,6 +1002,7 @@ int FERRET_MAIN(int argc, char **argv)
 
 	fprintf(stderr, "-- FERRET 3.0.1 - 2007-2012 (c) Errata Security\n");
 	fprintf(stderr, "-- build = %s %s (%u-bits)\n", __DATE__, __TIME__, (unsigned)sizeof(size_t)*8);
+    
 
 	/*
 	 * Register a signal handler for the <ctrl-c> key. This allows
@@ -1025,6 +1039,21 @@ int FERRET_MAIN(int argc, char **argv)
 	 * file that contains more difficult options.
 	 */
 	main_args(argc, argv, ferret);
+
+    if (ferret->is_regress) {
+        int x = 0;
+
+        x += smells_selftest_bittorrent_dht();
+
+        if (x) {
+            printf("regression test: failed\n");
+            return 1;
+        } else {
+            printf("regression test: succeeded\n");
+            return 0;
+        }
+
+    }
 
 	/*
 	 * Echo parameters
@@ -1167,6 +1196,8 @@ int FERRET_MAIN(int argc, char **argv)
 		report_fanout_topn(ferret, ferret->cfg.report_fanout);
 	if (ferret->cfg.report_fanin)
 		report_fanin_topn(ferret, ferret->cfg.report_fanin);
+	if (ferret->cfg.report_ciphersuites)
+		report_ciphersuites(ferret, ferret->cfg.report_ciphersuites);
 
 
 	/*

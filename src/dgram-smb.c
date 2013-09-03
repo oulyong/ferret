@@ -433,7 +433,7 @@ void process_smb_mailslot(struct Ferret *ferret, struct NetFrame *frame, const u
 
 void process_smb_dgm_transaction(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length, unsigned offset, struct SMBdgm *smb)
 {
-	unsigned reserved;
+	//unsigned reserved;
 
 	smb->dgm.trans.word_count		= get_byte(frame, px, length, &offset);
 	smb->dgm.trans.total_parm_count = get_word(frame, px, length, &offset);
@@ -441,16 +441,16 @@ void process_smb_dgm_transaction(struct Ferret *ferret, struct NetFrame *frame, 
 	smb->dgm.trans.max_parm_count	= get_word(frame, px, length, &offset);
 	smb->dgm.trans.max_data_count	= get_word(frame, px, length, &offset);
 	smb->dgm.trans.max_setup_count	= get_byte(frame, px, length, &offset);
-	reserved						= get_byte(frame, px, length, &offset);
+	/*reserved						=*/  get_byte(frame, px, length, &offset);
 	smb->dgm.trans.flags			= get_word(frame, px, length, &offset);
 	smb->dgm.trans.timeout			= get_dword(frame, px, length, &offset);
-	reserved						= get_word(frame, px, length, &offset);
+	/* reserved						=*/ get_word(frame, px, length, &offset);
 	smb->dgm.trans.parm_count		= get_word(frame, px, length, &offset);
 	smb->dgm.trans.parm_offset		= get_word(frame, px, length, &offset);
 	smb->dgm.trans.data_count		= get_word(frame, px, length, &offset);
 	smb->dgm.trans.data_offset		= get_word(frame, px, length, &offset);
 	smb->dgm.trans.setup_count		= get_byte(frame, px, length, &offset);
-	reserved						= get_byte(frame, px, length, &offset);
+	/*reserved						=*/  get_byte(frame, px, length, &offset);
 	smb->dgm.trans.setup_offset		= offset;
 	offset += smb->dgm.trans.setup_count*2;
 	smb->dgm.trans.byte_count		= get_word(frame, px, length, &offset);
@@ -467,7 +467,7 @@ void process_smb_dgm(struct Ferret *ferret, struct NetFrame *frame, const unsign
 {
 	unsigned offset;
 	struct SMBdgm smb;
-	unsigned reserved;
+	//unsigned reserved;
 
 	if (length < 28) {
 		FRAMERR(frame, "smb: truncated\n");
@@ -477,14 +477,14 @@ void process_smb_dgm(struct Ferret *ferret, struct NetFrame *frame, const unsign
 
 	smb.command			= get_byte(frame, px, length, &offset);
 	smb.err				= get_byte(frame, px, length, &offset);
-	reserved			= get_byte(frame, px, length, &offset);
+	/*reserved			=*/ get_byte(frame, px, length, &offset);
 	smb.errcode			= get_word(frame, px, length, &offset);
 	smb.flags			= get_byte(frame, px, length, &offset);
 	smb.flags2			= get_word(frame, px, length, &offset);
 	smb.process_id_high = get_word(frame, px, length, &offset);
 	memcpy(smb.signature, px+offset, 8);
 	offset += 8;
-	reserved			= get_word(frame, px, length, &offset);
+	/*reserved			= */ get_word(frame, px, length, &offset);
 	smb.tree_id			= get_word(frame, px, length, &offset);
 	smb.process_id		= get_word(frame, px, length, &offset);
 	smb.user_id			= get_word(frame, px, length, &offset);

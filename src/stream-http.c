@@ -374,7 +374,8 @@ int offset_of_char(unsigned c, const unsigned char *px, unsigned length)
  * Use a state-machine to parse the request-side (browser to server) of the 
  * the TCP stream.
  */
-void parse_http_request(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
+void
+stream_http_toserver(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
 	struct PARSE *parse = &stream->parse;
 	struct HTTPREQUEST *req = &stream->app.httpreq;

@@ -26,8 +26,8 @@ parse_CDP(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px
 {
 	unsigned offset=0;
 	unsigned version;
-	unsigned ttl;
-	unsigned checksum;
+	//unsigned ttl;
+	//unsigned checksum;
 
 	if (offset+4 > length) {
 		FRAMERR(frame, "%s: truncated\n", "cisco");
@@ -37,8 +37,8 @@ parse_CDP(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px
 	frame->layer3_protocol = LAYER3_MGMT;
 
 	version = px[offset++];
-	ttl = px[offset++];
-	checksum = ex16be(px+2);
+	//ttl = px[offset++];
+	//checksum = ex16be(px+2);
 	offset += 2;
 
 	SAMPLE(ferret,"Cisco Discovery Protocol", 

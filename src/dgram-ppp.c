@@ -119,7 +119,7 @@ get_option(const unsigned char *px, unsigned offset, unsigned length, unsigned i
 void process_pptp_linkcontrol(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
 	unsigned code;
-	unsigned id;
+	//unsigned id;
 	unsigned ppp_length;
 	unsigned offset = 0;
 	static struct ProtoPPP_Record *rec;
@@ -130,7 +130,7 @@ void process_pptp_linkcontrol(struct Ferret *ferret, struct NetFrame *frame, con
 	}
 
 	code = px[0];
-	id = px[1];
+	//id = px[1];
 	ppp_length = ex16be(px+2);
 	if (length > ppp_length)
 		length = ppp_length;
@@ -178,7 +178,7 @@ void process_pptp_linkcontrol(struct Ferret *ferret, struct NetFrame *frame, con
 void process_pptp_chap(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
 	unsigned code;
-	unsigned id;
+	//unsigned id;
 	unsigned sublength;
 	unsigned offset;
 	struct ProtoPPP_Record *rec;
@@ -195,7 +195,7 @@ void process_pptp_chap(struct Ferret *ferret, struct NetFrame *frame, const unsi
 	 * +--------+--------+--------+--------+
 	 */
 	code = px[0];
-	id = px[1];
+	//id = px[1];
 	sublength = ex16be(px+2);
 	if (sublength < 4) {
 		FRAMERR_BADVAL(frame, "ppp-chap", sublength);
@@ -316,8 +316,8 @@ void parse_ppoe_discovery(struct Ferret *ferret, struct NetFrame *frame, const u
 	unsigned ver;
 	unsigned type;
 	unsigned code;
-	unsigned payload_length;
-	unsigned session_id;
+	//unsigned payload_length;
+	//unsigned session_id;
 
 	if (length < 4) {
 		FRAMERR_TRUNCATED(frame, "PPoE");
@@ -327,8 +327,8 @@ void parse_ppoe_discovery(struct Ferret *ferret, struct NetFrame *frame, const u
 	ver = px[0]>>4;
 	type = px[0]&0x0F;
 	code = px[1];
-	session_id = ex16be(px+2);
-	payload_length = ex16be(px+4);
+	//session_id = ex16be(px+2);
+	//payload_length = ex16be(px+4);
 
 	switch ((ver<<12) | (type<<8) | code) {
 	case 0x1109:

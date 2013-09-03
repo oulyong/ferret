@@ -74,8 +74,11 @@ void process_ip(struct Ferret *ferret, struct NetFrame *frame, const unsigned ch
 
 	}
 
-    if (ip.fragment_offset != 0)
+    if (ip.fragment_offset != 0 || (ip.flags & 0x20)) {
+      	ferret->statistics.ipv4frag++;
+    	frame->layer3_protocol = LAYER3_IPV4FRAG;
 		return;
+    }
 
     /* Figure out packet distribution */
     if (ip.total_length <= 512) {
@@ -99,6 +102,9 @@ void process_ip(struct Ferret *ferret, struct NetFrame *frame, const unsigned ch
 	frame->ipttl = ip.ttl;
 	frame->src_ipv4 = ip.src_ip;
 	frame->dst_ipv4 = ip.dst_ip;
+
+    if ((224<<24) <= ip.dst_ip && ip.dst_ip < (240<<24))
+        frame->layer3_protocol = LAYER3_MULTICAST_UNKNOWN;
 
 	if (ip.version != 4) {
 		FRAMERR(frame, "ip: version=%d, expected version=4\n", ip.version);
@@ -191,6 +197,7 @@ void process_ip(struct Ferret *ferret, struct NetFrame *frame, const unsigned ch
 		process_gre(ferret, frame, px+offset, length-offset);
 		break;
 	case 50: /* ESP - Encapsulated Security Protocol */
+    	frame->layer4_protocol = LAYER4_ESP;
 		break;
 	case 41: /* IPv6 inside IPv4 */
 		process_ipv6(ferret, frame, px+offset, length-offset);

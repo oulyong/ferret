@@ -14,10 +14,10 @@ void process_gre_pptp(struct Ferret *ferret, struct NetFrame *frame, const unsig
 {
 	unsigned flags;
 	unsigned offset;
-	unsigned payload_length;
-	unsigned call_id;
-	unsigned sequence_number;
-	unsigned acknowledgement_number;
+	//unsigned payload_length;
+	//unsigned call_id;
+	//unsigned sequence_number;
+	//unsigned acknowledgement_number;
 
 
 	/*
@@ -34,8 +34,8 @@ void process_gre_pptp(struct Ferret *ferret, struct NetFrame *frame, const unsig
 	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 	*/
 	flags = ex16be(px);
-	payload_length = ex16be(px+4);
-	call_id = ex16be(px+6);
+	//payload_length = ex16be(px+4);
+	//call_id = ex16be(px+6);
 
 	if ((flags&0xE80F) != 0x2001) {
 		FRAMERR_UNKNOWN_UNSIGNED(frame, "gre", flags);
@@ -44,11 +44,11 @@ void process_gre_pptp(struct Ferret *ferret, struct NetFrame *frame, const unsig
 
 	offset = 8;
 	if (flags & 0x1000) {
-		sequence_number = ex32be(px+offset);
+		//sequence_number = ex32be(px+offset);
 		offset += 4;
 	}
 	if (flags & 0x0080) {
-		acknowledgement_number = ex32be(px+offset);
+		//acknowledgement_number = ex32be(px+offset);
 		offset += 4;
 	}
 	if (offset >= length) {
@@ -65,10 +65,10 @@ void process_gre_pptp(struct Ferret *ferret, struct NetFrame *frame, const unsig
 
 void process_gre(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
-	unsigned flags;
+	//unsigned flags;
 	unsigned version;
 	unsigned protocol;
-	unsigned offset;
+	//unsigned offset;
 	
 /*
       0                   1                   2                   3
@@ -92,11 +92,11 @@ void process_gre(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
 		return;
 	}
 
-	flags = ex16be(px);
+	//flags = ex16be(px);
 	version = px[1]&0x7;
 	protocol = ex16be(px+2);
 
-	offset = 4;
+	//offset = 4;
 
 	if (version == 1 && protocol == 0x880b)
 		process_gre_pptp(ferret, frame, px, length);

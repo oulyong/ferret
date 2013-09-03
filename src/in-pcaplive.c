@@ -16,7 +16,6 @@
   On Linux, this uses the dlopen/dlsym functions to do essentially
   the same thing.
 */
-
 #include "platform.h"
 
 #if _MSC_VER==1200

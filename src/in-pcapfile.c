@@ -19,7 +19,10 @@
   searches forward for a packet that looks good.
 
 */
+#define _FILE_OFFSET_BITS 64
+
 #define _CRT_SECURE_NO_WARNINGS
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -248,9 +251,10 @@ int64_t ftell_x(FILE *fp)
 	return _ftelli64(fp);
 #elif __GNUC__
 #if defined(__APPLE__)
+    assert(sizeof(off_t) == 8);
     return ftello(fp);
 #else
-	return ftello64(fp);
+	return ftello(fp);
 #endif
 #else
 #error ftell_x undefined for this platform
@@ -265,10 +269,11 @@ int fseek_x(FILE *fp, int64_t offset, int origin)
 #ifdef WIN32
 	return _fseeki64(fp, offset, origin);
 #elif __GNUC__
+    assert(sizeof(off_t) == 8);
 #if defined(__APPLE__)
     return fseeko(fp, offset, origin);
 #else
-	return fseeko64(fp, offset, origin);
+	return fseeko(fp, offset, origin);
 #endif
 #else
 #error fseek_x undefined for this platform

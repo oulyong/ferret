@@ -140,11 +140,13 @@ struct NameVal {
 struct NameVal layer3names[] = {
 	{LAYER3_UNKNOWN,	"unknown3"},
 	{LAYER3_IP,			"IPv4"},
+	{LAYER3_IPV4FRAG,	"IPv4frag"},
 	{LAYER3_ARP,		"ARP"},
 	{LAYER3_IPV6,		"IPv6"},
 	{LAYER3_MGMT,		"MGMT"},
 	{LAYER3_STP,		"STP"},
 	{LAYER3_NETBEUI,	"NETBEUI"},
+	{LAYER3_MULTICAST_UNKNOWN,	"multicast"},
 	{LAYER3_TOTAL,		"TOTAL"},
 	{0,0}
 };
@@ -156,6 +158,7 @@ struct NameVal layer4names[] = {
 	{LAYER4_ICMP,		"ICMP"},
 	{LAYER4_IGMP,		"IGMP"},
 	{LAYER4_GRE,		"GRE"},
+	{LAYER4_ESP,		"ESP"},
 	{LAYER4_TCP_CORRUPT,"TCP-corrupt"},
 	{LAYER4_TCP_XSUMERR,"TCP-xsumerr"},
 	{LAYER4_TOTAL,		"TOTAL"},
@@ -179,9 +182,14 @@ struct NameVal layer7names[] = {
 	{LAYER7_FTP,		"FTP"},
 	{LAYER7_IMAP,		"IMAP"},
 	{LAYER7_ISCSI,		"iSCSI"},
+	{LAYER7_RTSP,		"RTSP"},
+	{LAYER7_SSH,		"SSH"},
 
 
-	{LAYER7_BITTORRENT_DHT, "BITTORRENT_DHT"},
+	{LAYER7_BITTORRENT_TCP, "BitTorrent-TCP"},
+	{LAYER7_BITTORRENT_uTP, "BitTorrent-uTP"},
+	{LAYER7_BITTORRENT_DHT, "BitTorrent-DHT"},
+	{LAYER7_BITTORRENT_XYZ, "BitTorrent-XYZ"},
 	{LAYER7_CALLWAVE, "CALLWAVE"},
 	{LAYER7_CISCO, "CISCO"},
 	{LAYER7_CUPS, "CUPS"},
@@ -204,6 +212,7 @@ struct NameVal layer7names[] = {
 	{LAYER7_LDAP, "LDAP"},
 	{LAYER7_RTP, "RTP"},
 	{LAYER7_HSRP, "HSRP"},
+	{LAYER7_CLOUD_NIMBUS, "Nimbus"},
 	{0,0}
 };
 static int 

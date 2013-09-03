@@ -550,7 +550,7 @@ xleap_destroy(struct Ferret *ferret, const unsigned char *src_mac, const unsigne
 void process_wifi_authentication(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
 	unsigned auth_type;
-	unsigned seq;
+	//unsigned seq;
 	unsigned status;
 
 	if (length < 30) {
@@ -564,7 +564,7 @@ void process_wifi_authentication(struct Ferret *ferret, struct NetFrame *frame, 
 	frame->bss_mac = px+16;
 	
 	auth_type = ex16le(px+24);
-	seq = ex16le(px+26);
+	//seq = ex16le(px+26);
 	status = ex16le(px+28);
 
 	SAMPLE(ferret,"WIFI", JOT_NUM("authtype", auth_type));

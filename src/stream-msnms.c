@@ -243,9 +243,10 @@ void msg_text_secway(struct TCP_STREAM *stream, struct NetFrame *frame, struct S
 }
 void msg_msnmsgrp2p(struct TCP_STREAM *stream, struct NetFrame *frame, struct StringReassembler *data)
 {
-	const unsigned char *px = data->the_string;
+	//const unsigned char *px = data->the_string;
 	unsigned offset=0;
 	unsigned length = data->length;
+#if 0
 	struct MSNP2PInfo {
 		unsigned channel_session_id;
 		unsigned id;
@@ -257,6 +258,7 @@ void msg_msnmsgrp2p(struct TCP_STREAM *stream, struct NetFrame *frame, struct St
 		unsigned ack_uid;
 		uint64_t ack_size;
 	} p2pinfo;
+#endif
 
 
 	offset = msg_header_length(data);
@@ -266,6 +268,7 @@ void msg_msnmsgrp2p(struct TCP_STREAM *stream, struct NetFrame *frame, struct St
 		return;
 	}
 
+#if 0
 	p2pinfo.channel_session_id = ex32le(px+offset+0);
 	p2pinfo.id = ex32le(px+offset+4);
 	p2pinfo.offset = ex32le(px+offset+8);
@@ -276,7 +279,7 @@ void msg_msnmsgrp2p(struct TCP_STREAM *stream, struct NetFrame *frame, struct St
 	p2pinfo.ack_uid = ex32le(px+offset+36);
 	p2pinfo.ack_size = ex32le(px+offset+40);
 	offset += 48;
-
+#endif
 
 	//printf(".");
 
@@ -857,7 +860,6 @@ void msnms_client_command(
 		struct StringReassembler *data)
 {
 	struct TCP_STREAM *stream = &sess->to_server;
-	struct TCP_STREAM *stream_reverse = &sess->from_server;
 	struct FerretEngine *eng = sess->eng;
 	struct Ferret *ferret = eng->ferret;
 	struct Atom cmd;
@@ -945,9 +947,9 @@ void msnms_client_command(
     * The eighth parameter is your passport.
 */
 		{
-			struct Atom trid, localid, ostype, osver, arch, clientname, clientver, msmsgs, passport;
+			struct Atom localid, ostype, osver, arch, clientname, clientver, msmsgs, passport;
 
-			trid = atom_next(command, &offset);
+			atom_next(command, &offset); /*trid*/
 			localid = atom_next(command, &offset);
 			ostype = atom_next(command, &offset);
 			osver = atom_next(command, &offset);
@@ -1165,7 +1167,6 @@ void msnms_client_command(
 void 
 process_msnms_server_response(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
-	struct TCP_STREAM *stream_reverse = &sess->to_server;
 	unsigned offset=0;
 	unsigned eol=0;
 	struct StringReassembler *string_command = stream->str+0;

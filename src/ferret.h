@@ -26,6 +26,7 @@ struct Ferret;
 struct NetFrame;
 struct TCPRECORD;
 struct Listener;
+struct TCP_STREAM;
 
 struct FerretEngine;
 typedef void (*FERRET_PARSER)(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length);
@@ -98,6 +99,8 @@ struct FerretEngine
 
 	time_t last_activity;
 
+    struct XUnknownEngine *tcp_smells;
+
 	
 };
 
@@ -140,6 +143,7 @@ struct Statistics {
 	unsigned unencrypted_data;
 	unsigned encrypted_data;
 	unsigned ipv4;
+	unsigned ipv4frag;
 	unsigned ipv6;
 	unsigned ipx;
 	unsigned arp;
@@ -182,6 +186,7 @@ struct LEAP;
 
 struct Ferret
 {
+    unsigned is_regress:1;
 	unsigned is_error:1;
 	unsigned is_offline:1;
 	unsigned is_live:1;
@@ -271,6 +276,7 @@ struct Ferret
 		unsigned report_fanout:16;
 		unsigned report_fanin:16;
 		unsigned report_filter_stats:1;
+		unsigned report_ciphersuites:16;
 		unsigned report_start:1;
 		unsigned quiet:1; /* global quiet flag that turns off reporting with -q on the command line */
 		unsigned is_speed_timer:1;
@@ -328,6 +334,8 @@ struct Ferret
 	struct ReportNmap *report_nmap;
 
 	struct ReportFanout *report_fanout;
+
+	struct ReportCipherSuites *report_ciphersuites;
 
 	struct ProtoPPP *proto_ppp;
 };

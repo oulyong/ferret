@@ -168,7 +168,7 @@ static unsigned get_byte(const unsigned char *px, unsigned length, unsigned *r_o
 }
 
 
-unsigned smellslike_bittorrent_udp(const unsigned char *px, unsigned length)
+unsigned smellslike_bittorrent_XYZ(const unsigned char *px, unsigned length)
 {
 	unsigned offset=0;
 
@@ -183,30 +183,30 @@ unsigned smellslike_bittorrent_udp(const unsigned char *px, unsigned length)
 	 */
 	if (px[0] & 0x80) {
 		unsigned len;
-		uint64_t connection_id;
+		//uint64_t connection_id;
 		unsigned action_type;
-		unsigned transaction_id;
+		//unsigned transaction_id;
 		unsigned protocol_version;
 		unsigned vendor_id;
-		unsigned network;
-		unsigned originator_version;
+		//unsigned network;
+		//unsigned originator_version;
 		struct OriginatorAddress {
 			unsigned ver;
 			unsigned ipv4;
 			unsigned ipv6[4];
 			unsigned port;
 		} originator_address;
-		unsigned originator_instance_id;
-		uint64_t originator_time;
+		//unsigned originator_instance_id;
+		//uint64_t originator_time;
 
 		/* Connection ID is 64-bits of random data, with the high-order bit set */
-		connection_id = get_long(px, length, &offset);
+		get_long(px, length, &offset);
 
 		/* Action/type is one of ACT_REQUEST_PING etc. */
 		action_type = get_int(px, length, &offset);
 
 		/* Transaction ID is random data */
-		transaction_id = get_int(px, length, &offset);
+		get_int(px, length, &offset);
 
 		/* Protocol-version is a single byte. I'm not sure what it means */
 		protocol_version = get_byte(px, length, &offset);
@@ -241,14 +241,13 @@ unsigned smellslike_bittorrent_udp(const unsigned char *px, unsigned length)
 
 		/* Network number, added in Azureus/2.3.0.5 */
 		if (protocol_version >= 9) {
-			network = get_int(px, length, &offset);
+			get_int(px, length, &offset);
 		}
 
 		/* Originator version, added in Azuereus/2.3.0.5 */
 		if (protocol_version >= 9) {
-			originator_version = get_byte(px, length, &offset);
-		} else
-			originator_version = protocol_version;
+			get_byte(px, length, &offset);
+		}
 
 		/* Get the IP address, which may be IPv6 */
 		originator_address.ver = get_byte(px, length, &offset);
@@ -263,11 +262,11 @@ unsigned smellslike_bittorrent_udp(const unsigned char *px, unsigned length)
 		originator_address.port = get_short(px, length, &offset);
 
 		/* Get the "instance-id" of the originator, which is a 32-bit random number */
-		originator_instance_id = get_int(px, length, &offset);
+		get_int(px, length, &offset);
 
 		/* Get the originator's time, which is a 64-bit number measuring the 
 		 * number of milliseconds from midnight, January 1, 1970 UTC.*/
-		originator_time = get_long(px, length, &offset);
+		get_long(px, length, &offset);
 		/* 0x000001116d6e3519 = March 19, 2007 */
 
 		/*
@@ -364,7 +363,7 @@ unsigned smellslike_bittorrent_udp(const unsigned char *px, unsigned length)
 
 		/* Older versions put originator version at end */
 		if (protocol_version < 9)
-			originator_version = get_byte(px, length, &offset);
+			get_byte(px, length, &offset);
 
 		if (offset == length)
 			return 1;
@@ -372,23 +371,23 @@ unsigned smellslike_bittorrent_udp(const unsigned char *px, unsigned length)
 			return 0;
 	} else {
 		unsigned action_type;
-		unsigned transaction_id;
-		uint64_t connection_id;
+		//unsigned transaction_id;
+		//uint64_t connection_id;
 		unsigned protocol_version;
 		unsigned vendor_id;
-		unsigned target_instance_id;
-		unsigned network;
+		//unsigned target_instance_id;
+		//unsigned network;
 
 		/* The 32-bit action/type field is the first field in the reply packets */
 		action_type = get_int(px, length, &offset);
 		if (!is_valid_action(action_type))
 			return 0;
 
-		/* Transaction ID is random data */
-		transaction_id = get_int(px, length, &offset);
+		/* [Transaction ID] is random data */
+		get_int(px, length, &offset);
 
-		/* Connection ID is 64-bits of random data, with the high-order bit set */
-		connection_id = get_long(px, length, &offset);
+		/* [Connection ID] is 64-bits of random data, with the high-order bit set */
+		get_long(px, length, &offset);
 
 		/* Protocol-version is a single byte. I'm not sure what it means */
 		protocol_version = get_byte(px, length, &offset);
@@ -421,13 +420,13 @@ unsigned smellslike_bittorrent_udp(const unsigned char *px, unsigned length)
 			}
 		}
 
-		/* Network number, added in Azureus/2.3.0.5 */
+		/* [Network number], added in Azureus/2.3.0.5 */
 		if (protocol_version >= 9) {
-			network = get_int(px, length, &offset);
+			get_int(px, length, &offset);
 		}
 
-		/* Get the "instance-id" of the originator, which is a 32-bit random number */
-		target_instance_id = get_int(px, length, &offset);
+		/* [target-instance-id] of the originator, which is a 32-bit random number */
+		 get_int(px, length, &offset);
 
 		switch (action_type) {
 		case ACT_REQUEST_PING:			/* 1024 */
@@ -437,10 +436,13 @@ unsigned smellslike_bittorrent_udp(const unsigned char *px, unsigned length)
 				unsigned entries;
 				entries = get_byte(px, length, &offset);
 				while (entries) {
-					unsigned type;
+					//unsigned type;
 					unsigned size;
 
-					type = get_byte(px, length, &offset);
+                    /* [type] */
+					get_byte(px, length, &offset);
+
+                    /* [size] */
 					size = get_byte(px, length, &offset);
 					offset += size;
 					entries--;
@@ -481,7 +483,15 @@ unsigned smellslike_bittorrent_udp(const unsigned char *px, unsigned length)
 	}
 }
 
-void process_bittorrent_udp(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
+void process_bittorrent_XYZ(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
+{
+	frame->layer7_protocol = LAYER7_BITTORRENT_XYZ;
+}
+void process_bittorrent_DHT(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
 	frame->layer7_protocol = LAYER7_BITTORRENT_DHT;
+}
+void process_bittorrent_uTP(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
+{
+	frame->layer7_protocol = LAYER7_BITTORRENT_uTP;
 }

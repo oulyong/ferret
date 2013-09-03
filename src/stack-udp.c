@@ -104,6 +104,7 @@ int is_kludge_rtp_addrs(struct NetFrame *frame)
 	return 0;
 }
 
+#if 0
 static unsigned
 smellslike_udp_bootp(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length, unsigned direction)
 {
@@ -128,7 +129,10 @@ smellslike_udp_bootp(struct Ferret *ferret, struct NetFrame *frame, const unsign
         return false;
     return true;
 }
+#endif
 
+
+#if 0
 static unsigned
 smellslike_udp_dhcp(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length, unsigned direction)
 {
@@ -140,6 +144,7 @@ smellslike_udp_dhcp(struct Ferret *ferret, struct NetFrame *frame, const unsigne
 
 	return 0;
 }
+#endif
 
 int
 has_newline(const unsigned char *px, unsigned offset, unsigned length)
@@ -278,6 +283,13 @@ void process_udp(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
    			parse_tivo_broadcast(ferret, frame, px+offset, length-offset);
 			return;
         }
+        break;
+    case 48000:
+    case 48001:
+    case 48002:
+        if (udp_contains_sz(px+offset, length-offset, "nimbus/1"))
+            frame->layer7_protocol = LAYER7_CLOUD_NIMBUS;
+        break;
     }
 
     /*************************
@@ -291,6 +303,11 @@ void process_udp(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
     case 123:
         if (smellslike_udp_ntp(ferret, frame, px+offset, length-offset, SMELLS_DST))
            	ferret->statistics.udp_.ntp++;
+        break;
+    case 546:
+    case 547:
+        if (frame->ipver == 6)
+            parse_dhcpv6(ferret, frame, px+offset, length-offset);
         break;
     case 2190:
         if (smellslike_udp_tivoconnect(ferret, frame, px+offset, length-offset, SMELLS_DST)) {
@@ -308,6 +325,13 @@ void process_udp(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
            	ferret->statistics.udp_.norton_av++;
 			return;
 		}
+        break;
+    case 48000:
+    case 48001:
+    case 48002:
+        if (udp_contains_sz(px+offset, length-offset, "nimbus/1"))
+            frame->layer7_protocol = LAYER7_CLOUD_NIMBUS;
+        break;
     }
 
 	switch (udp.src_port) {
@@ -327,6 +351,11 @@ void process_udp(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
 	case 389:
 		process_ldap(ferret, frame, px+offset, length-offset);
 		break;
+    case 546:
+    case 547:
+        if (frame->ipver == 6)
+            parse_dhcpv6(ferret, frame, px+offset, length-offset);
+        break;
 	case 631:
 		if (udp.dst_port == 631) {
 			process_cups(ferret, frame, px+offset, length-offset);
@@ -351,6 +380,7 @@ void process_udp(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
 			break;
 		case 53:
 		case 5353:
+        case 5355:
 			process_dns(ferret, frame, px+offset, length-offset);
 			break;
 		case 137:
@@ -400,8 +430,14 @@ void process_udp(struct Ferret *ferret, struct NetFrame *frame, const unsigned c
 			if (frame->dst_ipv4 == 0xc0a8a89b || frame->src_ipv4 == 0xc0a8a89b)
 				;
 			else {
-				if (smellslike_bittorrent_udp(px+offset, length-offset))
-					process_bittorrent_udp(ferret, frame, px+offset, length-offset);
+				if (smellslike_bittorrent_XYZ(px+offset, length-offset))
+					process_bittorrent_XYZ(ferret, frame, px+offset, length-offset);
+				else if (px[offset] == 'd' && smellslike_bittorrent_DHT(px+offset, length-offset))
+					process_bittorrent_DHT(ferret, frame, px+offset, length-offset);
+				else if ((px[offset]&0x8F) == 0x01 && smellslike_bittorrent_uTP(px+offset, length-offset))
+					process_bittorrent_uTP(ferret, frame, px+offset, length-offset);
+                else if (length-offset >= 23 && px[offset+18] <= 4 && px[offset+17] < 3 && smellslike_bittorrent_uTP(px+offset, length-offset))
+                    process_bittorrent_uTP(ferret, frame, px+offset, length-offset);
 				else
 					; /*
 				FRAMERR(frame, "udp: unknown, [%d.%d.%d.%d]->[%d.%d.%d.%d] src=%d, dst=%d\n", 

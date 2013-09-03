@@ -17,13 +17,13 @@
 
 
 
-void parse_dcerpc_request(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
+void stream_dcerpc_toserver(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
 	sess->layer7_proto = LAYER7_DCERPC;
 	frame->layer7_protocol = LAYER7_DCERPC;
 }
 
-void parse_dcerpc_response(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
+void stream_dcerpc_fromserver(struct TCPRECORD *sess, struct TCP_STREAM *stream, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
 	sess->layer7_proto = LAYER7_DCERPC;
 	frame->layer7_protocol = LAYER7_DCERPC;

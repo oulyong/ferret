@@ -234,13 +234,13 @@ sip_get_header(const char *in_name, const unsigned char *px, unsigned length, st
 		while (value_offset < line_length && isspace(px[offset+value_offset]))
 			value_offset++;
  
-		field->px = (const char*)px+offset+value_offset;
+		field->px = px+offset+value_offset;
 		field->length = line_length-value_offset;
 
 		return 1; /* found */
 	}
 
-	field->px = "";
+	field->px = (const unsigned char *)"";
 	field->length = 0;
 	return 0;
 }
@@ -298,13 +298,13 @@ sip_get_next_header(const char *in_name, const unsigned char *px, unsigned *r_of
 		while (value_offset < line_length && isspace(px[offset+value_offset]))
 			value_offset++;
  
-		field->px = (const char*)px+offset+value_offset;
+		field->px = px+offset+value_offset;
 		field->length = line_length-value_offset;
 
 		return 1; /* found */
 	}
 
-	field->px = "";
+	field->px = (const unsigned char *)"";
 	field->length = 0;
 	*r_offset = offset;
 	return 0;
@@ -438,13 +438,13 @@ via_get_parm(const char *in_name, const unsigned char *px, unsigned length, stru
 			offset++;
 		while (offset<end_offset && isspace(px[offset]))
 			offset++;
-		field->px = (const char*)px+offset;
+		field->px = px+offset;
 		field->length = end_offset-offset;
 
 		return 1; /* found */
 	}
 
-	field->px = "";
+	field->px = (const unsigned char *)"";
 	field->length = 0;
 	return 0;
 }
@@ -540,7 +540,7 @@ sip_via(struct Ferret *ferret, struct NetFrame *frame, const void *vpx, unsigned
 	trim_whitespace(px, &offset, length);
 	{
 		unsigned start = offset;
-		host.px = (const char*)px+offset;
+		host.px = px+offset;
 		while (offset<length && px[offset] != ':' && !isspace(px[offset]) && px[offset] != ';')
 			offset++;
 		host.length = start-offset;
@@ -586,7 +586,7 @@ sip_via(struct Ferret *ferret, struct NetFrame *frame, const void *vpx, unsigned
 				return;
 			}
 		} else {
-			printf("");
+			;
 		}
 	}
 
@@ -670,6 +670,7 @@ sip_parse_uri(struct Ferret *ferret, struct NetFrame *frame, const void *vpx, un
 				offset++;
 		}
 		friendly.length = offset-start;
+        friendly=friendly; /*compiler warning*/
 	}
 
 	/*
@@ -712,7 +713,7 @@ sip_parse_uri(struct Ferret *ferret, struct NetFrame *frame, const void *vpx, un
 	trim_whitespace(px, &offset, length);
 	{
 		unsigned start = offset;
-		name.px = (char*)px+offset;
+		name.px = px+offset;
 		while (offset<length && px[offset] != ':' && px[offset] != '@' && px[offset] != '>' && px[offset] != ';')
 			offset++;
 		name.length = offset-start;
@@ -730,10 +731,16 @@ sip_parse_uri(struct Ferret *ferret, struct NetFrame *frame, const void *vpx, un
 		trim_whitespace(px, &offset, length);
 		
 		start = offset;
-		password.px = (char*)px+offset;
+		password.px = px+offset;
 		while (offset<length && px[offset] != ':' && px[offset] != '@' && px[offset] != '>' && px[offset] != ';')
 			offset++;
 		password.length = offset-start;
+   		JOTDOWN(ferret,
+			JOT_SZ("proto","SIP"),
+			JOT_PRINT("name", name.px, name.length),
+			JOT_PRINT("password", password.px, password.length),
+			0);
+
 	}
 
 	/*
@@ -756,10 +763,11 @@ sip_parse_uri(struct Ferret *ferret, struct NetFrame *frame, const void *vpx, un
 		unsigned start;
 		
 		start = offset;
-		host.px = (char*)px+offset;
+		host.px = px+offset;
 		while (offset<length && px[offset] != ':' && px[offset] != '>' && px[offset] != ';')
 			offset++;
 		host.length = offset-start;
+        host=host;
 	}
 
 	/*
@@ -790,7 +798,7 @@ sip_parse_uri(struct Ferret *ferret, struct NetFrame *frame, const void *vpx, un
 		
 		/* name */
 		trim_whitespace(px, &offset, length);
-		name.px = (const char*)px+offset;
+		name.px = px+offset;
 		start = offset;
 		while (offset<length && px[offset] != '>' && px[offset] != ';' && px[offset] != '=')
 			offset++;
@@ -801,13 +809,14 @@ sip_parse_uri(struct Ferret *ferret, struct NetFrame *frame, const void *vpx, un
 		if (match2("=", px, offset, length)) {
 			offset++;
 			trim_whitespace(px, &offset, length);
-			value.px = (const char *)px+offset;
+			value.px = px+offset;
 			start = offset;
 			while (offset<length && px[offset] != '>' && px[offset] != ';')
 				offset++;
 			value.length = offset-start;
 		}
 
+        name=name;value=value;
 		trim_whitespace(px, &offset, length);
 	}
 
@@ -833,7 +842,7 @@ sip_parse_uri(struct Ferret *ferret, struct NetFrame *frame, const void *vpx, un
 		
 		/* name */
 		trim_whitespace(px, &offset, length);
-		name.px = (const char*)px+offset;
+		name.px = px+offset;
 		start = offset;
 		while (offset<length && px[offset] != '>' && px[offset] != ';' && px[offset] != '=')
 			offset++;
@@ -844,13 +853,14 @@ sip_parse_uri(struct Ferret *ferret, struct NetFrame *frame, const void *vpx, un
 		if (match2("=", px, offset, length)) {
 			offset++;
 			trim_whitespace(px, &offset, length);
-			value.px = (const char *)px+offset;
+			value.px = px+offset;
 			start = offset;
 			while (offset<length && px[offset] != '>' && px[offset] != ';')
 				offset++;
 			value.length = offset-start;
 		}
 
+        name=name;value=value;
 		trim_whitespace(px, &offset, length);
 	}
 
@@ -877,6 +887,7 @@ parse_dgram_sip_response(struct Ferret *ferret, struct NetFrame *frame, const un
 	 * 407 proxy authentication required
 	 */
 	code = sip_get_response_code(px, length);
+    code=code; /*compiler warning*/
 
 	/* Process all "Via" headers */
 	offset = 0;

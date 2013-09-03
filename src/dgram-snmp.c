@@ -168,15 +168,15 @@ void process_snmp(struct Ferret *ferret, struct NetFrame *frame, const unsigned 
 		else {
 			unsigned oid_length = snmp_length(frame, px, length, &offset);
 			const unsigned char *oid = px+offset;
-			unsigned value_tag;
-			unsigned value_length;
+			//unsigned value_tag;
+			//unsigned value_length;
 
 			offset += oid_length;
 			if (offset > length)
 				return;
 
-			value_tag = snmp_tag(px,length,&offset);
-			value_length = snmp_length(frame, px, length, &offset);
+			//value_tag = snmp_tag(px,length,&offset);
+			//value_length = snmp_length(frame, px, length, &offset);
 		
 			switch (snmp->pdu_tag) {
 			case 0xA0:

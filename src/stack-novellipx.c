@@ -50,7 +50,7 @@ netbios_copy_name_raw(struct NetFrame *frame, const unsigned char *px, unsigned 
 
 void parse_novell_netbios_name(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
-	unsigned name_flag;
+	//unsigned name_flag;
 	unsigned opcode;
 	unsigned offset=0;
 	char name[128];
@@ -63,7 +63,7 @@ void parse_novell_netbios_name(struct Ferret *ferret, struct NetFrame *frame, co
 	}
 
 	/* Parse the header */
-	name_flag = px[offset+0];
+	//name_flag = px[offset+0];
 	opcode = px[offset+1];
 	offset += 2;
 
@@ -85,7 +85,7 @@ void parse_novell_netbios_name(struct Ferret *ferret, struct NetFrame *frame, co
 
 void parse_novell_netbios_dgram(struct Ferret *ferret, struct NetFrame *frame, const unsigned char *px, unsigned length)
 {
-	unsigned name_flag;
+	//unsigned name_flag;
 	unsigned opcode;
 	unsigned offset=0;
 
@@ -98,7 +98,7 @@ void parse_novell_netbios_dgram(struct Ferret *ferret, struct NetFrame *frame, c
 
 	/* Parse the header */
 	opcode = px[offset+0];
-	name_flag = px[offset+1];
+	//name_flag = px[offset+1];
 
 	/* Parse the different packet types */
 	switch (opcode) {

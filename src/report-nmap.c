@@ -76,12 +76,12 @@ void report_nmap_set_parameter(struct Ferret *ferret, const char *name, const ch
 	if (strcmp(name, "addr") == 0) {
 		struct ParsedIpAddress addr;
 		unsigned offset = 0;
-		unsigned is_exclude = 0;
+		//unsigned is_exclude = 0;
 		struct filter *filters;
 		unsigned *filter_count;
 
 		if (value[0] == '!') {
-			is_exclude = 1;
+			//is_exclude = 1;
 			filters = ferret->report_nmap->exclude_filters;
 			filter_count = &ferret->report_nmap->exclude_count;
 			value++;
@@ -213,7 +213,7 @@ match(const char *sz, const unsigned char *name, unsigned name_length)
 /****************************************************************************
  ****************************************************************************/
 void
-record_listening_port(struct Ferret *ferret, unsigned hops, unsigned ipver, unsigned in_host, const unsigned char *in_ipv6, unsigned in_transport, unsigned in_port, const char *in_proto, const char *in_banner, unsigned in_banner_length)
+record_listening_port(struct Ferret *ferret, unsigned hops, unsigned ipver, unsigned in_host, const unsigned char *in_ipv6, unsigned in_transport, unsigned in_port, const char *in_proto, const unsigned char *in_banner, unsigned in_banner_length)
 {
 	struct HostRecord *host;
 	struct PortRecord *port;

@@ -64,19 +64,19 @@ static int
 smellslike_httprequest(const unsigned char *data, unsigned length)
 {
 	unsigned i;
-	unsigned method;
-	unsigned url;
+	//unsigned method;
+	//unsigned url;
 
 	for (i=0; i<length && isspace(data[i]); i++)
 		;
-	method = i;
+	//method = i;
 	while (i<length && !isspace(data[i]))
 		i++;
 	if (i>10)
 		return 0;
 	while (i<length && isspace(data[i]))
 		i++;
-	url = i;
+	//url = i;
 	while (i<length && data[i] != '\n')
 		i++;
 
@@ -115,9 +115,9 @@ smellslike_http_response(const unsigned char *data, unsigned length)
 int smellslike_msn_messenger(const unsigned char *data, unsigned length)
 {
 	unsigned i=0;
-	unsigned method;
+	//unsigned method;
 	unsigned method_length=0;
-	unsigned parms;
+	//unsigned parms;
 	unsigned non_printable_count = 0;
 	unsigned line_length;
 
@@ -125,12 +125,12 @@ int smellslike_msn_messenger(const unsigned char *data, unsigned length)
 		return 0;
 
 
-	method = i;
+	//method = i;
 	while (i<length && !isspace(data[i]))
 		i++, method_length++;;
 	while (i<length && data[i] != '\n' && isspace(data[i]))
 		i++;
-	parms = i;
+	//parms = i;
 	while (i<length && data[i] != '\n')
 		i++;
 	line_length = i;
@@ -370,29 +370,29 @@ tcp_smellslike(struct TCPRECORD *sess,  const struct NetFrame *frame, const unsi
 
 	/* HTTP */
 	if (smellslike_httprequest(px, length)) {
-		*to_server = parse_http_request;
-		*from_server = parse_http_response;
+		*to_server = stream_http_toserver;
+		*from_server = stream_http_fromserver;
 		return 0;
 	}
 	if (smellslike_http_response(px, length)) {
-		*to_server = parse_http_request;
-		*from_server = parse_http_response;
+		*to_server = stream_http_toserver;
+		*from_server = stream_http_fromserver;
 		return 1; /* reverse */
 	}
 
 	/* SSL */
 	smell.state = 0;
 	if (smellslike_ssl_request(frame, &smell, px, length)) {
-		*to_server = parse_ssl_request;
-		*from_server = parse_ssl_response;
+		*to_server = stream_ssl_toserver;
+		*from_server = stream_ssl_fromserver;
 		return 0;
 	}
 
 	/* MSRPC */
 	dcerpc.state = 0;
 	if (smellslike_msrpc_toserver(&dcerpc, px, length)) {
-		*to_server = parse_dcerpc_request;
-		*from_server = parse_dcerpc_response;
+		*to_server = stream_dcerpc_toserver;
+		*from_server = stream_dcerpc_fromserver;
 		return 0;
 	}
 
@@ -443,17 +443,25 @@ tcp_smellslike(struct TCPRECORD *sess,  const struct NetFrame *frame, const unsi
 	if (src_port > 1024)
 	switch (dst_port) {
 	case 443: case 465:	case 993: case 995:
-			*to_server = parse_ssl_request;
-			*from_server = parse_ssl_response;
+			*to_server = stream_ssl_toserver;
+			*from_server = stream_ssl_fromserver;
 			return 0;
 	}
 	if (src_port > 1024)
 	switch (dst_port) {
 	case 443: case 465:	case 993: case 995:
-			*to_server = parse_ssl_request;
-			*from_server = parse_ssl_response;
+			*to_server = stream_ssl_toserver;
+			*from_server = stream_ssl_fromserver;
 			return 1;
 	}
+
+	/* SSH */
+	if (dst_port == 22 || src_port == 22) {
+		*to_server = stream_ssh_toserver;
+		*from_server = stream_ssh_fromserver;
+		return (src_port == 22);
+	}
+
 
 	/* SMTP */
 	if (dst_port == 25 || src_port == 25) {
@@ -490,14 +498,14 @@ tcp_smellslike(struct TCPRECORD *sess,  const struct NetFrame *frame, const unsi
 
 	/* DCE RPC */
 	if (dst_port == 135 || src_port == 135) {
-		*to_server = parse_dcerpc_request;
-		*from_server = parse_dcerpc_response;
+		*to_server = stream_dcerpc_toserver;
+		*from_server = stream_dcerpc_fromserver;
 		return (src_port == 135);
 	}
 
 	if (dst_port == 80 || src_port == 80) {
-		*to_server = parse_http_request;
-		*from_server = parse_http_response;
+		*to_server = stream_http_toserver;
+		*from_server = stream_http_fromserver;
 		return (src_port == 80);
 	}
 
