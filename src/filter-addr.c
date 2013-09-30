@@ -21,7 +21,7 @@ void flt_addr_set_parameter(struct SniffFilter *flt, const char *name, const cha
 	 */
 	if (*value == '!') {
 		exclude = 1;
-		value++;
+		offset++;
 	}
 
 

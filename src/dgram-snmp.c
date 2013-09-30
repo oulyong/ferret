@@ -54,6 +54,7 @@ unsigned snmp_length(struct NetFrame *frame, const unsigned char *px, unsigned l
 				*r_offset = length;
 				return 0xFFFFffff;
 			}
+            length_of_length--;
 		}
 	}
 	return result;
