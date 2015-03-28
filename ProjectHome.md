@@ -1,0 +1,1 @@
+Monitors data and extracts interesting data, especially cookies for "sidejacking".
